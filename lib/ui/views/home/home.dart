@@ -3,6 +3,8 @@ import 'package:chess/ui/views/home/home_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 
+import '../../../models/position.dart';
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -28,11 +30,17 @@ class HomePage extends StatelessWidget {
                           itemBuilder: (context, index) {
                             int row = index ~/ 8;
                             int col = index % 8;
-                            return Container(
-                              color: ((row + col) % 2) == 0
-                                  ? AppColors.lightTile
-                                  : AppColors.darkTile,
-                              child: model.chessService.board![row][col]?.svg,
+
+                            return GestureDetector(
+                              onTap: () => model.select(row, col),
+                              child: Container(
+                                color: model.isSelected(row, col)
+                                    ? AppColors.selected
+                                    : ((row + col) % 2) == 0
+                                        ? AppColors.lightTile
+                                        : AppColors.darkTile,
+                                child: model.chessService.board![row][col]?.svg,
+                              ),
                             );
                           }),
                     )

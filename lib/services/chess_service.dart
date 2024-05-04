@@ -1,12 +1,16 @@
 import 'package:chess/app/app_assets.dart';
 import 'package:chess/models/enums.dart' as en; // Chess Piece as an enum
+import 'package:stacked/stacked.dart';
 import '../models/chess_piece.dart' as model; //Chess Piece as a model
 import '../models/position.dart';
 
-class ChessService {
+class ChessService with ListenableServiceMixin {
   List<List<model.ChessPiece?>>? board;
-  model.ChessPiece? selectedPiece;
-  Position? selectedPosition;
+  final ReactiveValue<model.ChessPiece?> _selectedPiece = ReactiveValue(null);
+  final ReactiveValue<Position?> _selectedPosition = ReactiveValue(null);
+
+  model.ChessPiece? get getSelectedPiece => _selectedPiece.value;
+  Position? get getSelectedPosition => _selectedPosition.value;
 
   void init() {
     List<List<model.ChessPiece?>>? starting =
@@ -76,5 +80,12 @@ class ChessService {
         type: en.ChessPiece.king, svg: AppAssets.kingSvg(en.pieceColor.dark));
 
     board = starting;
+  }
+
+  select(Position position, model.ChessPiece? piece) {
+    _selectedPiece.value = piece;
+    _selectedPosition.value = position;
+
+    notifyListeners();
   }
 }

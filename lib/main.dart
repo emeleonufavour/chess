@@ -1,8 +1,11 @@
+import 'package:chess/app/app_setup.locator.dart';
 import 'package:flutter/material.dart';
 
 import 'ui/views/home/home.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await setupLocator();
   runApp(const MyApp());
 }
 
