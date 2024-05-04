@@ -4,14 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 
 class HomePage extends StatelessWidget {
-  HomePage({super.key});
-  final AppColors _appColors = AppColors();
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         body: ViewModelBuilder.reactive(
             viewModelBuilder: () => HomeViewModel(),
+            onViewModelReady: (viewModel) {
+              viewModel.chessService.init();
+            },
             builder: (context, model, _) {
               return Center(
                 child: Column(
@@ -28,8 +30,9 @@ class HomePage extends StatelessWidget {
                             int col = index % 8;
                             return Container(
                               color: ((row + col) % 2) == 0
-                                  ? _appColors.lightTile
-                                  : _appColors.darkTile,
+                                  ? AppColors.lightTile
+                                  : AppColors.darkTile,
+                              child: model.chessService.board![row][col]?.svg,
                             );
                           }),
                     )

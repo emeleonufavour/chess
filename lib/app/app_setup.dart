@@ -1,0 +1,2 @@
+@StackedApp()
+class AppSetup {}
