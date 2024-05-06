@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:chess/app/app_assets.dart';
 import 'package:chess/models/enums.dart' as en; // Chess Piece as an enum
+import 'package:chess/services/helper.dart';
 import 'package:stacked/stacked.dart';
 import '../models/chess_piece.dart' as model; //Chess Piece as a model
 import '../models/position.dart';
@@ -116,7 +117,8 @@ class ChessService with ListenableServiceMixin {
 
   /// This function runs when a [board] tile is selected
   select(Position position, model.ChessPiece? piece) {
-    // Check if tile is empty
+    refreshValidMoves();
+    // Check if tile is empty and moving to the empty tile
     if (board![position.row][position.column] == null &&
         _selectedPiece.value != null) {
       updateTilePiece(_selectedPiece.value!, position);
@@ -130,6 +132,7 @@ class ChessService with ListenableServiceMixin {
     } else {
       _selectedPosition.value = position;
       _selectedPiece.value = piece;
+      calculateValidMoves(position, piece!.variation);
     }
     log("Currently selected piece: ${_selectedPiece.value}");
 
@@ -157,5 +160,40 @@ class ChessService with ListenableServiceMixin {
     return variation == en.Variation.white ? 1 : -1;
   }
 
-  calculateValidMoves(Position position) {}
+  calculateValidMoves(Position position, en.Variation variation) {
+    movePawn(position, variation);
+  }
+
+  // Makes no tile to be highlighted
+  refreshValidMoves() {
+    validMoves.value =
+        List.generate(8, (index) => List.generate(8, (index) => false));
+    notifyListeners();
+  }
+
+  // Function to move Pawn
+  movePawn(Position position, en.Variation variation) {
+    // Move two or one when starting
+    if ((position.row == 1 && variation == en.Variation.white) ||
+        (position.row == 6 && variation == en.Variation.black)) {
+      if (withinBounds(
+              position.row + (2 * getDirection(variation)), position.column) &&
+          board![position.row + (2 * getDirection(variation))]
+                  [position.column] ==
+              null) {
+        (validMoves.value)[position.row + (2 * getDirection(variation))]
+            [position.column] = true;
+        notifyListeners();
+      }
+    }
+    // Move only one tile at a time
+    if (withinBounds(
+            position.row + (1 * getDirection(variation)), position.column) &&
+        board![position.row + (1 * getDirection(variation))][position.column] ==
+            null) {
+      (validMoves.value)[position.row + (1 * getDirection(variation))]
+          [position.column] = true;
+      notifyListeners();
+    }
+  }
 }
