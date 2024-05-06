@@ -36,9 +36,12 @@ class HomePage extends StatelessWidget {
                               child: Container(
                                 color: model.isSelected(row, col)
                                     ? AppColors.selected
-                                    : ((row + col) % 2) == 0
-                                        ? AppColors.lightTile
-                                        : AppColors.darkTile,
+                                    : model.chessService
+                                            .getHighlightedTiles[row][col]
+                                        ? AppColors.highlight
+                                        : (((row + col) % 2) == 0
+                                            ? AppColors.lightTile
+                                            : AppColors.darkTile),
                                 child: model.chessService.board![row][col]?.svg,
                               ),
                             );

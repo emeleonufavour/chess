@@ -10,9 +10,13 @@ class ChessService with ListenableServiceMixin {
   List<List<model.ChessPiece?>>? board;
   final ReactiveValue<model.ChessPiece?> _selectedPiece = ReactiveValue(null);
   final ReactiveValue<Position?> _selectedPosition = ReactiveValue(null);
+  //Tracks the possible moves for a selected piece
+  final ReactiveValue<List<List<bool>>> validMoves = ReactiveValue(
+      List.generate(8, (index) => List.generate(8, (index) => false)));
 
   model.ChessPiece? get getSelectedPiece => _selectedPiece.value;
   Position? get getSelectedPosition => _selectedPosition.value;
+  List<List<bool>> get getHighlightedTiles => validMoves.value;
 
   void init() {
     List<List<model.ChessPiece?>>? starting =
@@ -148,4 +152,10 @@ class ChessService with ListenableServiceMixin {
   capturePiece(model.ChessPiece piece, Position position) {
     updateTilePiece(piece, position);
   }
+
+  int getDirection(en.Variation variation) {
+    return variation == en.Variation.white ? 1 : -1;
+  }
+
+  calculateValidMoves(Position position) {}
 }
