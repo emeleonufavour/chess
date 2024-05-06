@@ -6,6 +6,12 @@ import 'package:chess/models/enums.dart' as en;
 class ChessPiece {
   en.ChessPiece type;
   SvgPicture svg;
+  en.Variation variation;
 
-  ChessPiece({required this.type, required this.svg});
+  ChessPiece({required this.type, required this.svg, required this.variation});
+
+  @override
+  String toString() {
+    return "Piece => ${type.string} ${variation.string}";
+  }
 }
