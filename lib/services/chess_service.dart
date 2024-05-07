@@ -182,7 +182,7 @@ class ChessService with ListenableServiceMixin {
         possibleBishopMoves(position, variation);
         break;
       case en.ChessPiece.queen:
-        possibleQueenMoves();
+        possibleQueenMoves(position, variation);
         break;
       case en.ChessPiece.king:
         possibleKingMoves();
@@ -512,7 +512,12 @@ class ChessService with ListenableServiceMixin {
     }
   }
 
-  possibleQueenMoves() {}
+  possibleQueenMoves(Position position, en.Variation variation) {
+    // Straight movements.................
+    possibleRookMoves(position, variation);
+    // Diagonal movements.................
+    possibleBishopMoves(position, variation);
+  }
 
   possibleKingMoves() {}
 }
