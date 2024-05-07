@@ -141,7 +141,6 @@ class ChessService with ListenableServiceMixin {
       calculateValidMoves(
           position, piece!.variation, _selectedPiece.value!.type);
     }
-    log("Currently selected piece: ${_selectedPiece.value}");
 
     notifyListeners();
   }
@@ -177,7 +176,7 @@ class ChessService with ListenableServiceMixin {
         possibleKnightMoves(position, variation);
         break;
       case en.ChessPiece.rook:
-        possibleRookMoves();
+        possibleRookMoves(position, variation);
         break;
       case en.ChessPiece.bishop:
         possibleBishopMoves();
@@ -373,7 +372,51 @@ class ChessService with ListenableServiceMixin {
     }
   }
 
-  possibleRookMoves() {}
+  possibleRookMoves(Position position, en.Variation variation) {
+    int row = position.row - 1;
+    int col = position.column;
+    // positive y-axis
+    while (withinBounds(row, col)) {
+      if (board![row][col] != null) {
+        break;
+      }
+      (validMoves.value)[row][col] = true;
+      row = row - 1;
+    }
+
+    // negative y-axis
+    int row2 = position.row + 1;
+    int col2 = position.column;
+    while (withinBounds(row2, col2)) {
+      if (board![row2][col2] != null) {
+        break;
+      }
+      (validMoves.value)[row2][col2] = true;
+      row2 = row2 + 1;
+    }
+
+    // negative x-axis
+    int row3 = position.row;
+    int col3 = position.column - 1;
+    while (withinBounds(row3, col3)) {
+      if (board![row3][col3] != null) {
+        break;
+      }
+      (validMoves.value)[row3][col3] = true;
+      col3 = col3 - 1;
+    }
+
+    // positive x-axis
+    int row4 = position.row;
+    int col4 = position.column + 1;
+    while (withinBounds(row4, col4)) {
+      if (board![row4][col4] != null) {
+        break;
+      }
+      (validMoves.value)[row4][col4] = true;
+      col4 = col4 + 1;
+    }
+  }
 
   possibleBishopMoves() {}
 
