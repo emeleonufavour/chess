@@ -19,6 +19,7 @@ class ChessService with ListenableServiceMixin {
   Position? get getSelectedPosition => _selectedPosition.value;
   List<List<bool>> get getHighlightedTiles => validMoves.value;
 
+  //Initialize the chess board
   void init() {
     List<List<model.ChessPiece?>>? starting =
         List.generate(8, (index) => List.generate(8, (index) => null));
@@ -137,7 +138,8 @@ class ChessService with ListenableServiceMixin {
       _selectedPosition.value = position;
       _selectedPiece.value = piece;
 
-      calculateValidMoves(position, piece!.variation);
+      calculateValidMoves(
+          position, piece!.variation, _selectedPiece.value!.type);
     }
     log("Currently selected piece: ${_selectedPiece.value}");
 
@@ -165,8 +167,28 @@ class ChessService with ListenableServiceMixin {
     return variation == en.Variation.white ? 1 : -1;
   }
 
-  calculateValidMoves(Position position, en.Variation variation) {
-    possiblePawnMoves(position, variation);
+  calculateValidMoves(
+      Position position, en.Variation variation, en.ChessPiece chessPiece) {
+    switch (chessPiece) {
+      case en.ChessPiece.pawn:
+        possiblePawnMoves(position, variation);
+        break;
+      case en.ChessPiece.knight:
+        possibleKnightMoves();
+        break;
+      case en.ChessPiece.rook:
+        possibleRookMoves();
+        break;
+      case en.ChessPiece.bishop:
+        possibleBishopMoves();
+        break;
+      case en.ChessPiece.queen:
+        possibleQueenMoves();
+        break;
+      case en.ChessPiece.king:
+        possibleKingMoves();
+        break;
+    }
   }
 
   // Makes no tile to be highlighted
@@ -235,4 +257,14 @@ class ChessService with ListenableServiceMixin {
       notifyListeners();
     }
   }
+
+  possibleKnightMoves() {}
+
+  possibleRookMoves() {}
+
+  possibleBishopMoves() {}
+
+  possibleQueenMoves() {}
+
+  possibleKingMoves() {}
 }
