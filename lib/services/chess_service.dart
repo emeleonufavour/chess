@@ -117,21 +117,26 @@ class ChessService with ListenableServiceMixin {
 
   /// This function runs when a [board] tile is selected
   select(Position position, model.ChessPiece? piece) {
-    refreshValidMoves();
     // Check if tile is empty and moving to the empty tile
     if (board![position.row][position.column] == null &&
-        _selectedPiece.value != null) {
+        _selectedPiece.value != null &&
+        ((validMoves.value)[position.row][position.column] == true)) {
       updateTilePiece(_selectedPiece.value!, position);
+      refreshValidMoves();
     }
     //Check if enemy piece is on the tile and previous selected piece is not null
     else if (board![position.row][position.column] != null &&
         _selectedPiece.value != null &&
         (board![position.row][position.column]!.variation !=
-            _selectedPiece.value!.variation)) {
+            _selectedPiece.value!.variation) &&
+        (validMoves.value)[position.row][position.column]) {
       capturePiece(_selectedPiece.value!, position);
-    } else {
+      refreshValidMoves();
+    } else if (board![position.row][position.column] != null) {
+      refreshValidMoves();
       _selectedPosition.value = position;
       _selectedPiece.value = piece;
+      log("Valid move (${position.row},${position.column})? ${(validMoves.value)[position.row][position.column]}");
       calculateValidMoves(position, piece!.variation);
     }
     log("Currently selected piece: ${_selectedPiece.value}");
@@ -161,7 +166,8 @@ class ChessService with ListenableServiceMixin {
   }
 
   calculateValidMoves(Position position, en.Variation variation) {
-    movePawn(position, variation);
+    possiblePawnMoves(position, variation);
+    //log
   }
 
   // Makes no tile to be highlighted
@@ -171,8 +177,8 @@ class ChessService with ListenableServiceMixin {
     notifyListeners();
   }
 
-  // Function to move Pawn
-  movePawn(Position position, en.Variation variation) {
+  // Function to get possible moves for a Pawn
+  possiblePawnMoves(Position position, en.Variation variation) {
     // Move two or one when starting
     if ((position.row == 1 && variation == en.Variation.white) ||
         (position.row == 6 && variation == en.Variation.black)) {
@@ -183,6 +189,7 @@ class ChessService with ListenableServiceMixin {
               null) {
         (validMoves.value)[position.row + (2 * getDirection(variation))]
             [position.column] = true;
+        log("(${position.row + (2 * getDirection(variation))},${position.column}) is valid? ${(validMoves.value)[position.row + (2 * getDirection(variation))][position.column]}");
         notifyListeners();
       }
     }
@@ -193,6 +200,7 @@ class ChessService with ListenableServiceMixin {
             null) {
       (validMoves.value)[position.row + (1 * getDirection(variation))]
           [position.column] = true;
+      log("(${position.row + (1 * getDirection(variation))},${position.column}) is valid? ${(validMoves.value)[position.row + (1 * getDirection(variation))][position.column]}");
       notifyListeners();
     }
   }
