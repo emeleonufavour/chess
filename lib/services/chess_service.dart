@@ -80,7 +80,7 @@ class ChessService with ListenableServiceMixin {
         svg: AppAssets.bishopSvg(en.pieceColor.light),
         variation: en.Variation.white);
     starting[0][5] = model.ChessPiece(
-        type: en.ChessPiece.rook,
+        type: en.ChessPiece.bishop,
         svg: AppAssets.bishopSvg(en.pieceColor.light),
         variation: en.Variation.white);
 
@@ -489,7 +489,7 @@ class ChessService with ListenableServiceMixin {
         break;
       }
       (validMoves.value)[row3][col3] = true;
-      row3 = row3 - 1;
+      row3 = row3 + 1;
       col3 = col3 + 1;
     }
 
