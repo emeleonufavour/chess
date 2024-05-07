@@ -174,7 +174,7 @@ class ChessService with ListenableServiceMixin {
         possiblePawnMoves(position, variation);
         break;
       case en.ChessPiece.knight:
-        possibleKnightMoves();
+        possibleKnightMoves(position, variation);
         break;
       case en.ChessPiece.rook:
         possibleRookMoves();
@@ -258,8 +258,119 @@ class ChessService with ListenableServiceMixin {
     }
   }
 
-  possibleKnightMoves(Position position) {
-    //Upper left side
+  possibleKnightMoves(Position position, en.Variation variation) {
+    //Upper right side(1)
+    if (withinBounds(position.row - (2), position.column + (1))) {
+      if (board![position.row - (2)][position.column + (1)] == null) {
+        (validMoves.value)[position.row - (2)][position.column + (1)] = true;
+      } else if (board![position.row - (2)][position.column + (1)] != null &&
+          (board![position.row - (2)][position.column + (1)]
+                      as model.ChessPiece)
+                  .variation !=
+              variation) {
+        (validMoves.value)[position.row - (2)][position.column + (1)] = true;
+      }
+
+      notifyListeners();
+    }
+
+    //Upper right side(2)
+    if (withinBounds(position.row - (1), position.column + (2))) {
+      int row = position.row - (1);
+      int col = position.column + (2);
+      if (board![row][col] == null) {
+        (validMoves.value)[row][col] = true;
+      } else if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row][col] = true;
+      }
+
+      notifyListeners();
+    }
+
+    //Lower right side(2)
+    if (withinBounds(position.row + (1), position.column + (2))) {
+      int row = position.row + (1);
+      int col = position.column + (2);
+      if (board![row][col] == null) {
+        (validMoves.value)[row][col] = true;
+      } else if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row][col] = true;
+      }
+
+      notifyListeners();
+    }
+
+    //Lower right side (1)
+    if (withinBounds(position.row + (2), position.column + (1))) {
+      int row = position.row + (2);
+      int col = position.column + (1);
+      if (board![row][col] == null) {
+        (validMoves.value)[row][col] = true;
+      } else if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row][col] = true;
+      }
+
+      notifyListeners();
+    }
+
+    // Upper left side(1)
+    if (withinBounds(position.row - (2), position.column - (1))) {
+      int row = position.row - (2);
+      int col = position.column - (1);
+      if (board![row][col] == null) {
+        (validMoves.value)[row][col] = true;
+      } else if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row][col] = true;
+      }
+
+      notifyListeners();
+    }
+
+    // Upper left side (2)
+    if (withinBounds(position.row - (1), position.column - (2))) {
+      int row = position.row - (1);
+      int col = position.column - (2);
+      if (board![row][col] == null) {
+        (validMoves.value)[row][col] = true;
+      } else if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row][col] = true;
+      }
+
+      notifyListeners();
+    }
+
+    // Lower left side (2)
+    if (withinBounds(position.row + (1), position.column - (2))) {
+      int row = position.row + (1);
+      int col = position.column - (2);
+      if (board![row][col] == null) {
+        (validMoves.value)[row][col] = true;
+      } else if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row][col] = true;
+      }
+
+      notifyListeners();
+    }
+
+    // Lower left side (1)
+    if (withinBounds(position.row + (2), position.column - (1))) {
+      int row = position.row + (2);
+      int col = position.column - (1);
+      if (board![row][col] == null) {
+        (validMoves.value)[row][col] = true;
+      } else if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row][col] = true;
+      }
+
+      notifyListeners();
+    }
   }
 
   possibleRookMoves() {}
