@@ -136,7 +136,7 @@ class ChessService with ListenableServiceMixin {
       refreshValidMoves();
       _selectedPosition.value = position;
       _selectedPiece.value = piece;
-      log("Valid move (${position.row},${position.column})? ${(validMoves.value)[position.row][position.column]}");
+
       calculateValidMoves(position, piece!.variation);
     }
     log("Currently selected piece: ${_selectedPiece.value}");
@@ -167,7 +167,6 @@ class ChessService with ListenableServiceMixin {
 
   calculateValidMoves(Position position, en.Variation variation) {
     possiblePawnMoves(position, variation);
-    //log
   }
 
   // Makes no tile to be highlighted
@@ -189,7 +188,7 @@ class ChessService with ListenableServiceMixin {
               null) {
         (validMoves.value)[position.row + (2 * getDirection(variation))]
             [position.column] = true;
-        log("(${position.row + (2 * getDirection(variation))},${position.column}) is valid? ${(validMoves.value)[position.row + (2 * getDirection(variation))][position.column]}");
+
         notifyListeners();
       }
     }
@@ -200,7 +199,39 @@ class ChessService with ListenableServiceMixin {
             null) {
       (validMoves.value)[position.row + (1 * getDirection(variation))]
           [position.column] = true;
-      log("(${position.row + (1 * getDirection(variation))},${position.column}) is valid? ${(validMoves.value)[position.row + (1 * getDirection(variation))][position.column]}");
+
+      notifyListeners();
+    }
+
+    //capture opponent in left(white) or right(black) adjacent box
+    if (withinBounds(position.row + (1 * getDirection(variation)),
+            position.column - (1 * getDirection(variation))) &&
+        board![position.row + (1 * getDirection(variation))]
+                [position.column - (1 * getDirection(variation))] !=
+            null &&
+        (board![position.row + (1 * getDirection(variation))]
+                        [position.column - (1 * getDirection(variation))]
+                    as model.ChessPiece)
+                .variation !=
+            variation) {
+      (validMoves.value)[position.row + (1 * getDirection(variation))]
+          [position.column - (1 * getDirection(variation))] = true;
+      notifyListeners();
+    }
+
+    //capture opponent in right(white) or left(black) adjacent box
+    if (withinBounds(position.row + (1 * getDirection(variation)),
+            position.column + (1 * getDirection(variation))) &&
+        board![position.row + (1 * getDirection(variation))]
+                [position.column + (1 * getDirection(variation))] !=
+            null &&
+        (board![position.row + (1 * getDirection(variation))]
+                        [position.column + (1 * getDirection(variation))]
+                    as model.ChessPiece)
+                .variation !=
+            variation) {
+      (validMoves.value)[position.row + (1 * getDirection(variation))]
+          [position.column + (1 * getDirection(variation))] = true;
       notifyListeners();
     }
   }
