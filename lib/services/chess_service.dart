@@ -185,7 +185,7 @@ class ChessService with ListenableServiceMixin {
         possibleQueenMoves(position, variation);
         break;
       case en.ChessPiece.king:
-        possibleKingMoves();
+        possibleKingMoves(position, variation);
         break;
     }
   }
@@ -519,5 +519,117 @@ class ChessService with ListenableServiceMixin {
     possibleBishopMoves(position, variation);
   }
 
-  possibleKingMoves() {}
+  possibleKingMoves(Position position, en.Variation variation) {
+    // Up right diagonal
+    if (withinBounds(position.row - 1, position.column + 1)) {
+      if (board![position.row - 1][position.column + 1] == null) {
+        (validMoves.value)[position.row - 1][position.column + (1)] = true;
+      } else if (board![position.row - 1][position.column + (1)] != null &&
+          (board![position.row - 1][position.column + (1)] as model.ChessPiece)
+                  .variation !=
+              variation) {
+        (validMoves.value)[position.row - 1][position.column + (1)] = true;
+      }
+
+      notifyListeners();
+    }
+
+    // Up
+    if (withinBounds(position.row - 1, position.column)) {
+      if (board![position.row - 1][position.column] == null) {
+        (validMoves.value)[position.row - 1][position.column] = true;
+      } else if (board![position.row - 1][position.column] != null &&
+          (board![position.row - 1][position.column] as model.ChessPiece)
+                  .variation !=
+              variation) {
+        (validMoves.value)[position.row - 1][position.column] = true;
+      }
+
+      notifyListeners();
+    }
+
+    // Up left diagonal
+    if (withinBounds(position.row - 1, position.column - 1)) {
+      if (board![position.row - 1][position.column - 1] == null) {
+        (validMoves.value)[position.row - 1][position.column - 1] = true;
+      } else if (board![position.row - 1][position.column - 1] != null &&
+          (board![position.row - 1][position.column - 1] as model.ChessPiece)
+                  .variation !=
+              variation) {
+        (validMoves.value)[position.row - 1][position.column - 1] = true;
+      }
+
+      notifyListeners();
+    }
+
+    //down left diagonal
+    if (withinBounds(position.row + 1, position.column - 1)) {
+      if (board![position.row + 1][position.column - 1] == null) {
+        (validMoves.value)[position.row + 1][position.column - 1] = true;
+      } else if (board![position.row + 1][position.column - 1] != null &&
+          (board![position.row + 1][position.column - 1] as model.ChessPiece)
+                  .variation !=
+              variation) {
+        (validMoves.value)[position.row + 1][position.column - 1] = true;
+      }
+
+      notifyListeners();
+    }
+
+    //down
+    if (withinBounds(position.row + 1, position.column)) {
+      if (board![position.row + 1][position.column] == null) {
+        (validMoves.value)[position.row + 1][position.column] = true;
+      } else if (board![position.row + 1][position.column] != null &&
+          (board![position.row + 1][position.column] as model.ChessPiece)
+                  .variation !=
+              variation) {
+        (validMoves.value)[position.row + 1][position.column] = true;
+      }
+
+      notifyListeners();
+    }
+
+    // down right diagonal
+    if (withinBounds(position.row + 1, position.column + 1)) {
+      if (board![position.row + 1][position.column + 1] == null) {
+        (validMoves.value)[position.row + 1][position.column + 1] = true;
+      } else if (board![position.row + 1][position.column + 1] != null &&
+          (board![position.row + 1][position.column + 1] as model.ChessPiece)
+                  .variation !=
+              variation) {
+        (validMoves.value)[position.row + 1][position.column + 1] = true;
+      }
+
+      notifyListeners();
+    }
+
+    // left
+    if (withinBounds(position.row, position.column - 1)) {
+      if (board![position.row][position.column - 1] == null) {
+        (validMoves.value)[position.row][position.column - 1] = true;
+      } else if (board![position.row][position.column - 1] != null &&
+          (board![position.row][position.column - 1] as model.ChessPiece)
+                  .variation !=
+              variation) {
+        (validMoves.value)[position.row][position.column - 1] = true;
+      }
+
+      notifyListeners();
+    }
+
+    // right
+    if (withinBounds(position.row, position.column + 1)) {
+      if (board![position.row][position.column + 1] == null) {
+        (validMoves.value)[position.row][position.column + 1] = true;
+      } else if (board![position.row][position.column + 1] != null &&
+          (board![position.row][position.column + 1] as model.ChessPiece)
+                  .variation !=
+              variation) {
+        (validMoves.value)[position.row][position.column + 1] = true;
+      }
+
+      notifyListeners();
+    }
+  }
 }
