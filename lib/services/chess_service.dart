@@ -377,7 +377,12 @@ class ChessService with ListenableServiceMixin {
     int col = position.column;
     // positive y-axis
     while (withinBounds(row, col)) {
-      if (board![row][col] != null) {
+      if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row][col] = true;
+        break;
+      } else if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation == variation) {
         break;
       }
       (validMoves.value)[row][col] = true;
@@ -388,7 +393,12 @@ class ChessService with ListenableServiceMixin {
     int row2 = position.row + 1;
     int col2 = position.column;
     while (withinBounds(row2, col2)) {
-      if (board![row2][col2] != null) {
+      if (board![row2][col2] != null &&
+          (board![row2][col2] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row2][col2] = true;
+        break;
+      } else if (board![row2][col2] != null &&
+          (board![row2][col2] as model.ChessPiece).variation == variation) {
         break;
       }
       (validMoves.value)[row2][col2] = true;
@@ -399,7 +409,12 @@ class ChessService with ListenableServiceMixin {
     int row3 = position.row;
     int col3 = position.column - 1;
     while (withinBounds(row3, col3)) {
-      if (board![row3][col3] != null) {
+      if (board![row3][col3] != null &&
+          (board![row3][col3] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row3][col3] = true;
+        break;
+      } else if (board![row3][col3] != null &&
+          (board![row3][col3] as model.ChessPiece).variation == variation) {
         break;
       }
       (validMoves.value)[row3][col3] = true;
@@ -410,7 +425,12 @@ class ChessService with ListenableServiceMixin {
     int row4 = position.row;
     int col4 = position.column + 1;
     while (withinBounds(row4, col4)) {
-      if (board![row4][col4] != null) {
+      if (board![row4][col4] != null &&
+          (board![row4][col4] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row4][col4] = true;
+        break;
+      } else if (board![row4][col4] != null &&
+          (board![row4][col4] as model.ChessPiece).variation == variation) {
         break;
       }
       (validMoves.value)[row4][col4] = true;
