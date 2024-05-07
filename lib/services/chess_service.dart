@@ -258,7 +258,9 @@ class ChessService with ListenableServiceMixin {
     }
   }
 
-  possibleKnightMoves() {}
+  possibleKnightMoves(Position position) {
+    //Upper left side
+  }
 
   possibleRookMoves() {}
 
