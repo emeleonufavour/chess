@@ -179,7 +179,7 @@ class ChessService with ListenableServiceMixin {
         possibleRookMoves(position, variation);
         break;
       case en.ChessPiece.bishop:
-        possibleBishopMoves();
+        possibleBishopMoves(position, variation);
         break;
       case en.ChessPiece.queen:
         possibleQueenMoves();
@@ -438,7 +438,79 @@ class ChessService with ListenableServiceMixin {
     }
   }
 
-  possibleBishopMoves() {}
+  possibleBishopMoves(Position position, en.Variation variation) {
+    // upper right diagonal
+    int row = position.row - 1;
+    int col = position.column + 1;
+
+    while (withinBounds(row, col)) {
+      if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row][col] = true;
+        break;
+      } else if (board![row][col] != null &&
+          (board![row][col] as model.ChessPiece).variation == variation) {
+        break;
+      }
+      (validMoves.value)[row][col] = true;
+      row = row - 1;
+      col = col + 1;
+    }
+
+    // upper left diagonal
+    int row2 = position.row - 1;
+    int col2 = position.column - 1;
+
+    while (withinBounds(row2, col2)) {
+      if (board![row2][col2] != null &&
+          (board![row2][col2] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row2][col2] = true;
+        break;
+      } else if (board![row2][col2] != null &&
+          (board![row2][col2] as model.ChessPiece).variation == variation) {
+        break;
+      }
+      (validMoves.value)[row2][col2] = true;
+      row2 = row2 - 1;
+      col2 = col2 - 1;
+    }
+
+    // lower right diagonal
+    int row3 = position.row + 1;
+    int col3 = position.column + 1;
+
+    while (withinBounds(row3, col3)) {
+      if (board![row3][col3] != null &&
+          (board![row3][col3] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row3][col3] = true;
+        break;
+      } else if (board![row3][col3] != null &&
+          (board![row3][col3] as model.ChessPiece).variation == variation) {
+        break;
+      }
+      (validMoves.value)[row3][col3] = true;
+      row3 = row3 - 1;
+      col3 = col3 + 1;
+    }
+
+    // lower left diagonal
+    int row4 = position.row + 1;
+    int col4 = position.column - 1;
+
+    while (withinBounds(row4, col4)) {
+      if (board![row4][col4] != null &&
+          (board![row4][col4] as model.ChessPiece).variation != variation) {
+        (validMoves.value)[row4][col4] = true;
+        break;
+      } else if (board![row4][col4] != null &&
+          (board![row4][col4] as model.ChessPiece).variation == variation) {
+        break;
+      }
+      (validMoves.value)[row4][col4] = true;
+      row4 = row4 + 1;
+      col4 = col4 - 1;
+    }
+  }
 
   possibleQueenMoves() {}
 
