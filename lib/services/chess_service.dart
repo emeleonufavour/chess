@@ -11,6 +11,9 @@ class ChessService with ListenableServiceMixin {
   List<List<model.ChessPiece?>>? board;
   final ReactiveValue<model.ChessPiece?> _selectedPiece = ReactiveValue(null);
   final ReactiveValue<Position?> _selectedPosition = ReactiveValue(null);
+  final ReactiveValue<en.Variation?> _previousPlayerVariation =
+      ReactiveValue(null);
+
   //Tracks the possible moves for a selected piece
   final ReactiveValue<List<List<bool>>> validMoves = ReactiveValue(
       List.generate(8, (index) => List.generate(8, (index) => false)));
@@ -125,6 +128,7 @@ class ChessService with ListenableServiceMixin {
       updateTilePiece(_selectedPiece.value!, position);
       refreshValidMoves();
     }
+
     //Check if enemy piece is on the tile and previous selected piece is not null
     else if (board![position.row][position.column] != null &&
         _selectedPiece.value != null &&
@@ -133,14 +137,29 @@ class ChessService with ListenableServiceMixin {
         (validMoves.value)[position.row][position.column]) {
       capturePiece(_selectedPiece.value!, position);
       refreshValidMoves();
-    } else if (board![position.row][position.column] != null) {
-      refreshValidMoves();
-      _selectedPosition.value = position;
-      _selectedPiece.value = piece;
-
-      calculateValidMoves(
-          position, piece!.variation, _selectedPiece.value!.type);
     }
+    // Check if owner's piece is being tapped
+    else if (board![position.row][position.column] != null) {
+      // Make sure a user cannot tap his own piece twice in succession
+      // if (_selectedPiece.value != null &&
+      //     _selectedPiece.value!.variation !=
+      //         (board![position.row][position.column])!.variation && _previousPlayerMoved.value) {
+      _selectedPiece.value = piece;
+      log("Selected piece => ${_selectedPiece.value}");
+      if (_previousPlayerVariation.value == null ||
+          (_selectedPiece.value != null &&
+              _previousPlayerVariation.value !=
+                  _selectedPiece.value!.variation)) {
+        refreshValidMoves();
+        _selectedPosition.value = position;
+
+        calculateValidMoves(
+            position, piece!.variation, _selectedPiece.value!.type);
+      }
+
+      // }
+    }
+    log(_previousPlayerVariation.value.toString());
 
     notifyListeners();
   }
@@ -148,6 +167,7 @@ class ChessService with ListenableServiceMixin {
   void updateTilePiece(model.ChessPiece piece, Position position) {
     final selectedPiece = _selectedPiece.value;
     final prevPosition = _selectedPosition.value;
+    _previousPlayerVariation.value = piece.variation;
 
     if (selectedPiece != null && prevPosition != null) {
       board![prevPosition.row][prevPosition.column] = null;
