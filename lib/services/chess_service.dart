@@ -12,7 +12,8 @@ class ChessService with ListenableServiceMixin {
   final ReactiveValue<model.ChessPiece?> _selectedPiece = ReactiveValue(null);
   final ReactiveValue<Position?> _selectedPosition = ReactiveValue(null);
   final ReactiveValue<en.Variation?> _previousPlayerVariation =
-      ReactiveValue(null);
+      ReactiveValue(en.Variation.black);
+  bool kingInCheck = false;
 
   //Tracks the possible moves for a selected piece
   final ReactiveValue<List<List<bool>>> validMoves = ReactiveValue(
@@ -31,90 +32,90 @@ class ChessService with ListenableServiceMixin {
     for (int i = 0; i < 8; i++) {
       starting[1][i] = model.ChessPiece(
           type: en.ChessPiece.pawn,
-          svg: AppAssets.pawnSvg(en.pieceColor.light),
-          variation: en.Variation.white);
-      starting[6][i] = model.ChessPiece(
-          type: en.ChessPiece.pawn,
           svg: AppAssets.pawnSvg(en.pieceColor.dark),
           variation: en.Variation.black);
+      starting[6][i] = model.ChessPiece(
+          type: en.ChessPiece.pawn,
+          svg: AppAssets.pawnSvg(en.pieceColor.light),
+          variation: en.Variation.white);
     }
 
     //Rooks position
     starting[0][0] = model.ChessPiece(
         type: en.ChessPiece.rook,
-        svg: AppAssets.rookSvg(en.pieceColor.light),
-        variation: en.Variation.white);
+        svg: AppAssets.rookSvg(en.pieceColor.dark),
+        variation: en.Variation.black);
     starting[0][7] = model.ChessPiece(
         type: en.ChessPiece.rook,
-        svg: AppAssets.rookSvg(en.pieceColor.light),
-        variation: en.Variation.white);
+        svg: AppAssets.rookSvg(en.pieceColor.dark),
+        variation: en.Variation.black);
 
     starting[7][0] = model.ChessPiece(
         type: en.ChessPiece.rook,
-        svg: AppAssets.rookSvg(en.pieceColor.dark),
-        variation: en.Variation.black);
+        svg: AppAssets.rookSvg(en.pieceColor.light),
+        variation: en.Variation.white);
     starting[7][7] = model.ChessPiece(
         type: en.ChessPiece.rook,
-        svg: AppAssets.rookSvg(en.pieceColor.dark),
-        variation: en.Variation.black);
+        svg: AppAssets.rookSvg(en.pieceColor.light),
+        variation: en.Variation.white);
 
     //Knights position
     starting[0][1] = model.ChessPiece(
         type: en.ChessPiece.knight,
-        svg: AppAssets.knightSvg(en.pieceColor.light),
-        variation: en.Variation.white);
+        svg: AppAssets.knightSvg(en.pieceColor.dark),
+        variation: en.Variation.black);
     starting[0][6] = model.ChessPiece(
         type: en.ChessPiece.knight,
-        svg: AppAssets.knightSvg(en.pieceColor.light),
-        variation: en.Variation.white);
+        svg: AppAssets.knightSvg(en.pieceColor.dark),
+        variation: en.Variation.black);
 
     starting[7][1] = model.ChessPiece(
         type: en.ChessPiece.knight,
-        svg: AppAssets.knightSvg(en.pieceColor.dark),
-        variation: en.Variation.black);
+        svg: AppAssets.knightSvg(en.pieceColor.light),
+        variation: en.Variation.white);
     starting[7][6] = model.ChessPiece(
         type: en.ChessPiece.knight,
-        svg: AppAssets.knightSvg(en.pieceColor.dark),
-        variation: en.Variation.black);
+        svg: AppAssets.knightSvg(en.pieceColor.light),
+        variation: en.Variation.white);
 
     //Bishops position
     starting[0][2] = model.ChessPiece(
         type: en.ChessPiece.bishop,
-        svg: AppAssets.bishopSvg(en.pieceColor.light),
-        variation: en.Variation.white);
+        svg: AppAssets.bishopSvg(en.pieceColor.dark),
+        variation: en.Variation.black);
     starting[0][5] = model.ChessPiece(
         type: en.ChessPiece.bishop,
-        svg: AppAssets.bishopSvg(en.pieceColor.light),
-        variation: en.Variation.white);
+        svg: AppAssets.bishopSvg(en.pieceColor.dark),
+        variation: en.Variation.black);
 
     starting[7][2] = model.ChessPiece(
         type: en.ChessPiece.bishop,
-        svg: AppAssets.bishopSvg(en.pieceColor.dark),
-        variation: en.Variation.black);
+        svg: AppAssets.bishopSvg(en.pieceColor.light),
+        variation: en.Variation.white);
     starting[7][5] = model.ChessPiece(
         type: en.ChessPiece.bishop,
-        svg: AppAssets.bishopSvg(en.pieceColor.dark),
-        variation: en.Variation.black);
+        svg: AppAssets.bishopSvg(en.pieceColor.light),
+        variation: en.Variation.white);
 
     //Queens position
     starting[0][3] = model.ChessPiece(
         type: en.ChessPiece.queen,
-        svg: AppAssets.queenSvg(en.pieceColor.light),
-        variation: en.Variation.white);
-    starting[7][4] = model.ChessPiece(
-        type: en.ChessPiece.queen,
         svg: AppAssets.queenSvg(en.pieceColor.dark),
         variation: en.Variation.black);
+    starting[7][4] = model.ChessPiece(
+        type: en.ChessPiece.queen,
+        svg: AppAssets.queenSvg(en.pieceColor.light),
+        variation: en.Variation.white);
 
     //Kings position
     starting[0][4] = model.ChessPiece(
         type: en.ChessPiece.king,
-        svg: AppAssets.kingSvg(en.pieceColor.light),
-        variation: en.Variation.white);
-    starting[7][3] = model.ChessPiece(
-        type: en.ChessPiece.king,
         svg: AppAssets.kingSvg(en.pieceColor.dark),
         variation: en.Variation.black);
+    starting[7][3] = model.ChessPiece(
+        type: en.ChessPiece.king,
+        svg: AppAssets.kingSvg(en.pieceColor.light),
+        variation: en.Variation.white);
 
     board = starting;
   }
@@ -125,7 +126,10 @@ class ChessService with ListenableServiceMixin {
     if (board![position.row][position.column] == null &&
         _selectedPiece.value != null &&
         ((validMoves.value)[position.row][position.column] == true)) {
+      // Make a move if the king is in check
+
       updateTilePiece(_selectedPiece.value!, position);
+
       refreshValidMoves();
     }
 
@@ -141,11 +145,8 @@ class ChessService with ListenableServiceMixin {
     // Check if owner's piece is being tapped
     else if (board![position.row][position.column] != null) {
       // Make sure a user cannot tap his own piece twice in succession
-      // if (_selectedPiece.value != null &&
-      //     _selectedPiece.value!.variation !=
-      //         (board![position.row][position.column])!.variation && _previousPlayerMoved.value) {
       _selectedPiece.value = piece;
-      log("Selected piece => ${_selectedPiece.value}");
+
       if (_previousPlayerVariation.value == null ||
           (_selectedPiece.value != null &&
               _previousPlayerVariation.value !=
@@ -156,22 +157,19 @@ class ChessService with ListenableServiceMixin {
         calculateValidMoves(
             position, piece!.variation, _selectedPiece.value!.type);
       }
-
-      // }
     }
-    log(_previousPlayerVariation.value.toString());
 
     notifyListeners();
   }
 
-  void updateTilePiece(model.ChessPiece piece, Position position) {
+  void updateTilePiece(model.ChessPiece piece, Position newPosition) {
     final selectedPiece = _selectedPiece.value;
     final prevPosition = _selectedPosition.value;
     _previousPlayerVariation.value = piece.variation;
 
     if (selectedPiece != null && prevPosition != null) {
       board![prevPosition.row][prevPosition.column] = null;
-      board![position.row][position.column] = selectedPiece;
+      board![newPosition.row][newPosition.column] = selectedPiece;
 
       _selectedPiece.value = null;
       _selectedPosition.value = null;
@@ -183,7 +181,7 @@ class ChessService with ListenableServiceMixin {
   }
 
   int getDirection(en.Variation variation) {
-    return variation == en.Variation.white ? 1 : -1;
+    return variation == en.Variation.white ? -1 : 1;
   }
 
   calculateValidMoves(
@@ -210,6 +208,89 @@ class ChessService with ListenableServiceMixin {
     }
   }
 
+  // Check to know if the king is in check
+  bool isOpponentKingInCheck(en.Variation variation,
+      [Position? possibleKingPosition]) {
+    Position? kingPosition = possibleKingPosition;
+    List<List<bool>> previousValidMoves = validMoves.value;
+
+    // If possible king's location is not provided then locate the opponent king's position
+    if (possibleKingPosition == null) {
+      for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+          if (board![row][col] != null &&
+              board![row][col]!.type == en.ChessPiece.king &&
+              board![row][col]!.variation != variation) {
+            kingPosition = Position(row: row, column: col);
+            break;
+          }
+        }
+        if (kingPosition != null) break;
+      }
+
+      if (kingPosition == null) return false; // King not found, not in check
+    }
+
+    // Check for each type of players piece if it can attack the opponent king's position
+    for (int row = 0; row < 8; row++) {
+      for (int col = 0; col < 8; col++) {
+        if (board![row][col] != null &&
+            board![row][col]!.variation == variation) {
+          Position pos = Position(row: row, column: col);
+          refreshValidMoves();
+          calculateValidMoves(
+              pos, board![row][col]!.variation, board![row][col]!.type);
+
+          if (validMoves.value[kingPosition!.row][kingPosition.column]) {
+            return true; // King is in check
+          }
+        }
+      }
+    }
+    validMoves.value = previousValidMoves;
+    return false; // King is not in check
+  }
+
+  bool isKingInCheck(en.Variation variation, [Position? possibleKingPosition]) {
+    Position? kingPosition = possibleKingPosition;
+
+    // Locate the king's position
+    if (kingPosition == null) {
+      for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+          if (board![row][col] != null &&
+              board![row][col]!.type == en.ChessPiece.king &&
+              board![row][col]!.variation == variation) {
+            kingPosition = Position(row: row, column: col);
+            break;
+          }
+        }
+        if (kingPosition != null) break;
+      }
+
+      if (kingPosition == null) return false; // King not found, not in check
+    }
+
+    // Check for each type of opposing piece if it can attack the king's position
+    for (int row = 0; row < 8; row++) {
+      for (int col = 0; col < 8; col++) {
+        if (board![row][col] != null &&
+            board![row][col]!.variation != variation) {
+          Position pos = Position(row: row, column: col);
+          refreshValidMoves();
+          calculateValidMoves(
+              pos, board![row][col]!.variation, board![row][col]!.type);
+
+          if (validMoves.value[kingPosition.row][kingPosition.column]) {
+            return true; // King is in check
+          }
+        }
+      }
+    }
+
+    return false; // King is not in check
+  }
+
   // Makes no tile to be highlighted
   refreshValidMoves() {
     validMoves.value =
@@ -220,8 +301,8 @@ class ChessService with ListenableServiceMixin {
   // Function to get possible moves for a Pawn
   possiblePawnMoves(Position position, en.Variation variation) {
     // Move two or one when starting
-    if ((position.row == 1 && variation == en.Variation.white) ||
-        (position.row == 6 && variation == en.Variation.black)) {
+    if ((position.row == 1 && variation == en.Variation.black) ||
+        (position.row == 6 && variation == en.Variation.white)) {
       if (withinBounds(
               position.row + (2 * getDirection(variation)), position.column) &&
           board![position.row + (2 * getDirection(variation))]
@@ -548,6 +629,8 @@ class ChessService with ListenableServiceMixin {
           (board![position.row - 1][position.column + (1)] as model.ChessPiece)
                   .variation !=
               variation) {
+        // Allow a move only if moving the king does not result in check
+
         (validMoves.value)[position.row - 1][position.column + (1)] = true;
       }
 
@@ -562,7 +645,9 @@ class ChessService with ListenableServiceMixin {
           (board![position.row - 1][position.column] as model.ChessPiece)
                   .variation !=
               variation) {
-        (validMoves.value)[position.row - 1][position.column] = true;
+        if (!isKingInCheck(variation)) {
+          (validMoves.value)[position.row - 1][position.column] = true;
+        }
       }
 
       notifyListeners();
@@ -576,7 +661,9 @@ class ChessService with ListenableServiceMixin {
           (board![position.row - 1][position.column - 1] as model.ChessPiece)
                   .variation !=
               variation) {
-        (validMoves.value)[position.row - 1][position.column - 1] = true;
+        if (!isKingInCheck(variation)) {
+          (validMoves.value)[position.row - 1][position.column - 1] = true;
+        }
       }
 
       notifyListeners();
@@ -590,7 +677,9 @@ class ChessService with ListenableServiceMixin {
           (board![position.row + 1][position.column - 1] as model.ChessPiece)
                   .variation !=
               variation) {
-        (validMoves.value)[position.row + 1][position.column - 1] = true;
+        if (!isKingInCheck(variation)) {
+          (validMoves.value)[position.row + 1][position.column - 1] = true;
+        }
       }
 
       notifyListeners();
@@ -604,7 +693,9 @@ class ChessService with ListenableServiceMixin {
           (board![position.row + 1][position.column] as model.ChessPiece)
                   .variation !=
               variation) {
-        (validMoves.value)[position.row + 1][position.column] = true;
+        if (!isKingInCheck(variation)) {
+          (validMoves.value)[position.row + 1][position.column] = true;
+        }
       }
 
       notifyListeners();
@@ -618,7 +709,9 @@ class ChessService with ListenableServiceMixin {
           (board![position.row + 1][position.column + 1] as model.ChessPiece)
                   .variation !=
               variation) {
-        (validMoves.value)[position.row + 1][position.column + 1] = true;
+        if (!isKingInCheck(variation)) {
+          (validMoves.value)[position.row + 1][position.column + 1] = true;
+        }
       }
 
       notifyListeners();
@@ -632,7 +725,9 @@ class ChessService with ListenableServiceMixin {
           (board![position.row][position.column - 1] as model.ChessPiece)
                   .variation !=
               variation) {
-        (validMoves.value)[position.row][position.column - 1] = true;
+        if (!isKingInCheck(variation)) {
+          (validMoves.value)[position.row][position.column - 1] = true;
+        }
       }
 
       notifyListeners();
@@ -646,7 +741,9 @@ class ChessService with ListenableServiceMixin {
           (board![position.row][position.column + 1] as model.ChessPiece)
                   .variation !=
               variation) {
-        (validMoves.value)[position.row][position.column + 1] = true;
+        if (!isKingInCheck(variation)) {
+          (validMoves.value)[position.row][position.column + 1] = true;
+        }
       }
 
       notifyListeners();
