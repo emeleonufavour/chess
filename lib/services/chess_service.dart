@@ -186,7 +186,6 @@ class ChessService with ListenableServiceMixin {
     bool isCheckMate = isCheckmate(opponentVariation);
     bool check = isPositionUnderAttack(position, opponentVariation);
 
-    log("checkmate => $isCheckMate || check => $check");
     if (isCheckMate) {
       // Game over logic here
       log("Checkmate! ${board![to.row][to.column]!.variation} wins!");
@@ -237,33 +236,36 @@ class ChessService with ListenableServiceMixin {
         List.generate(8, (_) => List.generate(8, (_) => false));
     model.ChessPiece? chessPiece = board![position.row][position.column];
     if (chessPiece == null) return validMoves;
+
     List<List<bool>>? potentialMoves;
     switch (chessPiece.type) {
       case en.ChessPiece.pawn:
         potentialMoves = possiblePawnMoves(position, variation);
-        // notifyListeners();
         break;
       case en.ChessPiece.knight:
         potentialMoves = possibleKnightMoves(position, variation);
-        // notifyListeners();
         break;
       case en.ChessPiece.rook:
         potentialMoves = possibleRookMoves(position, variation);
-        // notifyListeners();
         break;
       case en.ChessPiece.bishop:
         potentialMoves = possibleBishopMoves(position, variation);
-        // notifyListeners();
         break;
       case en.ChessPiece.queen:
         potentialMoves = possibleQueenMoves(position, variation);
-        // notifyListeners();
         break;
       case en.ChessPiece.king:
         potentialMoves = possibleKingMoves(position, variation);
-        // notifyListeners();
         break;
     }
+
+    // Find the current position of the king
+    Position kingPosition = variation == en.Variation.black
+        ? Position(
+            row: blackKingPosition["row"]!, column: blackKingPosition["col"]!)
+        : Position(
+            row: whiteKingPosition["row"]!, column: whiteKingPosition["col"]!);
+
     // Filter out moves that would leave the king in check
     for (int i = 0; i < 8; i++) {
       for (int j = 0; j < 8; j++) {
@@ -273,20 +275,27 @@ class ChessService with ListenableServiceMixin {
           board![i][j] = board![position.row][position.column];
           board![position.row][position.column] = null;
 
-          // Check if the king is in check after this move
-          bool kingInCheck = isKingInCheck(variation);
+          // Update king position if the king was moved
+          Position newKingPosition = (chessPiece.type == en.ChessPiece.king)
+              ? Position(row: i, column: j)
+              : kingPosition;
+
+          // Check if the king is under attack after this move
+          bool kingUnderAttack =
+              isPositionUnderAttack(newKingPosition, variation);
 
           // Undo the move
           board![position.row][position.column] = board![i][j];
           board![i][j] = capturedPiece;
 
-          // If this move doesn't leave the king in check, it's valid
-          if (!kingInCheck) {
+          // If this move doesn't leave the king under attack, it's valid
+          if (!kingUnderAttack) {
             validMoves[i][j] = true;
           }
         }
       }
     }
+
     return validMoves;
   }
 
@@ -329,72 +338,6 @@ class ChessService with ListenableServiceMixin {
       }
     }
     validMoves.value = previousValidMoves;
-    return false; // King is not in check
-  }
-
-  bool isKingInCheck(en.Variation variation, [Position? possibleKingPosition]) {
-    Position? kingPosition = possibleKingPosition;
-
-    // Locate the king's position
-    if (kingPosition == null) {
-      for (int row = 0; row < 8; row++) {
-        for (int col = 0; col < 8; col++) {
-          if (board![row][col] != null &&
-              board![row][col]!.type == en.ChessPiece.king &&
-              board![row][col]!.variation == variation) {
-            kingPosition = Position(row: row, column: col);
-            break;
-          }
-        }
-        if (kingPosition != null) break;
-      }
-
-      if (kingPosition == null) return false; // King not found, not in check
-    }
-
-    // Check for each type of opposing piece if it can attack the king's position
-    for (int row = 0; row < 8; row++) {
-      for (int col = 0; col < 8; col++) {
-        if (board![row][col] != null &&
-            board![row][col]!.variation != variation) {
-          Position pos = Position(row: row, column: col);
-          // refreshValidMoves();
-          List<List<bool>> _validMoves =
-              List.generate(8, (index) => List.generate(8, (index) => false));
-          // calculateValidMoves(
-          //     pos, board![row][col]!.variation, board![row][col]!.type);
-          switch (board![row][col]!.type) {
-            case en.ChessPiece.pawn:
-              _validMoves = possiblePawnMoves(pos, variation);
-              break;
-            case en.ChessPiece.knight:
-              _validMoves = possibleKnightMoves(pos, variation);
-
-              break;
-            case en.ChessPiece.rook:
-              _validMoves = possibleRookMoves(pos, variation);
-
-              break;
-            case en.ChessPiece.bishop:
-              _validMoves = possibleBishopMoves(pos, variation);
-
-              break;
-            case en.ChessPiece.queen:
-              _validMoves = possibleQueenMoves(pos, variation);
-
-              break;
-            case en.ChessPiece.king:
-              _validMoves = possibleKingMoves(pos, variation);
-
-              break;
-          }
-          if (_validMoves[kingPosition.row][kingPosition.column]) {
-            return true; // King is in check
-          }
-        }
-      }
-    }
-
     return false; // King is not in check
   }
 
@@ -854,8 +797,14 @@ class ChessService with ListenableServiceMixin {
   }
 
   bool isCheckmate(en.Variation variation) {
+    Position kingPosition = variation == en.Variation.black
+        ? Position(
+            row: blackKingPosition["row"]!, column: blackKingPosition["col"]!)
+        : Position(
+            row: whiteKingPosition["row"]!, column: whiteKingPosition["col"]!);
+
     // First, check if the king is in check
-    if (!isKingInCheck(variation)) {
+    if (!isPositionUnderAttack(kingPosition, variation)) {
       return false;
     }
 
@@ -877,15 +826,21 @@ class ChessService with ListenableServiceMixin {
                 board![i][j] = board![row][col];
                 board![row][col] = null;
 
-                // Check if the king is still in check after this move
-                bool stillInCheck = isKingInCheck(variation);
+                // Update king position if the king was moved
+                if (board![i][j]!.type == en.ChessPiece.king) {
+                  kingPosition = Position(row: i, column: j);
+                }
+
+                // Check if the king is still under attack after this move
+                bool stillUnderAttack =
+                    isPositionUnderAttack(kingPosition, variation);
 
                 // Undo the move
                 board![row][col] = board![i][j];
                 board![i][j] = capturedPiece;
 
                 // If this move gets the king out of check, it's not checkmate
-                if (!stillInCheck) {
+                if (!stillUnderAttack) {
                   return false;
                 }
               }
