@@ -11,6 +11,8 @@ class ChessService with ListenableServiceMixin {
   List<List<model.ChessPiece?>>? board;
   final ReactiveValue<model.ChessPiece?> _selectedPiece = ReactiveValue(null);
   final ReactiveValue<Position?> _selectedPosition = ReactiveValue(null);
+  final Map<String, int> whiteKingPosition = {"row": 7, "col": 4};
+  final Map<String, int> blackKingPosition = {"row": 0, "col": 3};
   final ReactiveValue<en.Variation?> _previousPlayerVariation =
       ReactiveValue(en.Variation.black);
   bool kingInCheck = false;
@@ -98,21 +100,21 @@ class ChessService with ListenableServiceMixin {
         variation: en.Variation.white);
 
     //Queens position
-    starting[0][3] = model.ChessPiece(
+    starting[0][4] = model.ChessPiece(
         type: en.ChessPiece.queen,
         svg: AppAssets.queenSvg(en.pieceColor.dark),
         variation: en.Variation.black);
-    starting[7][4] = model.ChessPiece(
+    starting[7][3] = model.ChessPiece(
         type: en.ChessPiece.queen,
         svg: AppAssets.queenSvg(en.pieceColor.light),
         variation: en.Variation.white);
 
     //Kings position
-    starting[0][4] = model.ChessPiece(
+    starting[0][3] = model.ChessPiece(
         type: en.ChessPiece.king,
         svg: AppAssets.kingSvg(en.pieceColor.dark),
         variation: en.Variation.black);
-    starting[7][3] = model.ChessPiece(
+    starting[7][4] = model.ChessPiece(
         type: en.ChessPiece.king,
         svg: AppAssets.kingSvg(en.pieceColor.light),
         variation: en.Variation.white);
@@ -128,7 +130,8 @@ class ChessService with ListenableServiceMixin {
         ((validMoves.value)[position.row][position.column] == true)) {
       // Make a move if the king is in check
 
-      updateTilePiece(_selectedPiece.value!, position);
+      // updateTilePiece(_selectedPiece.value!, position);
+      makeMove(_selectedPosition.value!, position);
 
       refreshValidMoves();
     }
@@ -139,7 +142,7 @@ class ChessService with ListenableServiceMixin {
         (board![position.row][position.column]!.variation !=
             _selectedPiece.value!.variation) &&
         (validMoves.value)[position.row][position.column]) {
-      capturePiece(_selectedPiece.value!, position);
+      capturePiece(_selectedPosition.value!, position);
       refreshValidMoves();
     }
     // Check if owner's piece is being tapped
@@ -154,12 +157,43 @@ class ChessService with ListenableServiceMixin {
         refreshValidMoves();
         _selectedPosition.value = position;
 
-        calculateValidMoves(
-            position, piece!.variation, _selectedPiece.value!.type);
+        validMoves.value = calculateValidMoves(position, piece!.variation);
       }
     }
 
     notifyListeners();
+  }
+
+  void makeMove(Position from, Position to) {
+    // Existing move logic here
+    updateTilePiece(board![from.row][from.column]!, to);
+
+    // After the move is made, check for checkmate
+    en.Variation opponentVariation =
+        board![to.row][to.column]!.variation == en.Variation.white
+            ? en.Variation.black
+            : en.Variation.white;
+
+    Position position =
+        board![to.row][to.column]!.variation == en.Variation.white
+            ? Position(
+                row: blackKingPosition["row"]!,
+                column: blackKingPosition["col"]!)
+            : Position(
+                row: whiteKingPosition["row"]!,
+                column: whiteKingPosition["col"]!);
+
+    bool isCheckMate = isCheckmate(opponentVariation);
+    bool check = isPositionUnderAttack(position, opponentVariation);
+
+    log("checkmate => $isCheckMate || check => $check");
+    if (isCheckMate) {
+      // Game over logic here
+      log("Checkmate! ${board![to.row][to.column]!.variation} wins!");
+      // You might want to set a game state variable or trigger an end game event
+    } else if (check) {
+      log("Check!");
+    } else {}
   }
 
   void updateTilePiece(model.ChessPiece piece, Position newPosition) {
@@ -174,38 +208,86 @@ class ChessService with ListenableServiceMixin {
       _selectedPiece.value = null;
       _selectedPosition.value = null;
     }
+
+    // Update king position for fast memory access to king location
+    if (piece.type == en.ChessPiece.king) {
+      if (piece.variation == en.Variation.black) {
+        blackKingPosition["row"] = newPosition.row;
+        blackKingPosition["col"] = newPosition.column;
+      }
+      if (piece.variation == en.Variation.white) {
+        whiteKingPosition["row"] = newPosition.row;
+        whiteKingPosition["col"] = newPosition.column;
+      }
+    }
   }
 
-  capturePiece(model.ChessPiece piece, Position position) {
-    updateTilePiece(piece, position);
+  capturePiece(Position from, Position to) {
+    makeMove(from, to);
+    // updateTilePiece(piece, position);
   }
 
   int getDirection(en.Variation variation) {
     return variation == en.Variation.white ? -1 : 1;
   }
 
-  calculateValidMoves(
-      Position position, en.Variation variation, en.ChessPiece chessPiece) {
-    switch (chessPiece) {
+  List<List<bool>> calculateValidMoves(
+      Position position, en.Variation variation) {
+    List<List<bool>> validMoves =
+        List.generate(8, (_) => List.generate(8, (_) => false));
+    model.ChessPiece? chessPiece = board![position.row][position.column];
+    if (chessPiece == null) return validMoves;
+    List<List<bool>>? potentialMoves;
+    switch (chessPiece.type) {
       case en.ChessPiece.pawn:
-        possiblePawnMoves(position, variation);
+        potentialMoves = possiblePawnMoves(position, variation);
+        // notifyListeners();
         break;
       case en.ChessPiece.knight:
-        possibleKnightMoves(position, variation);
+        potentialMoves = possibleKnightMoves(position, variation);
+        // notifyListeners();
         break;
       case en.ChessPiece.rook:
-        possibleRookMoves(position, variation);
+        potentialMoves = possibleRookMoves(position, variation);
+        // notifyListeners();
         break;
       case en.ChessPiece.bishop:
-        possibleBishopMoves(position, variation);
+        potentialMoves = possibleBishopMoves(position, variation);
+        // notifyListeners();
         break;
       case en.ChessPiece.queen:
-        possibleQueenMoves(position, variation);
+        potentialMoves = possibleQueenMoves(position, variation);
+        // notifyListeners();
         break;
       case en.ChessPiece.king:
-        possibleKingMoves(position, variation);
+        potentialMoves = possibleKingMoves(position, variation);
+        // notifyListeners();
         break;
     }
+    // Filter out moves that would leave the king in check
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 8; j++) {
+        if (potentialMoves[i][j]) {
+          // Try the move
+          model.ChessPiece? capturedPiece = board![i][j];
+          board![i][j] = board![position.row][position.column];
+          board![position.row][position.column] = null;
+
+          // Check if the king is in check after this move
+          bool kingInCheck = isKingInCheck(variation);
+
+          // Undo the move
+          board![position.row][position.column] = board![i][j];
+          board![i][j] = capturedPiece;
+
+          // If this move doesn't leave the king in check, it's valid
+          if (!kingInCheck) {
+            validMoves[i][j] = true;
+          }
+        }
+      }
+    }
+    return validMoves;
   }
 
   // Check to know if the king is in check
@@ -238,8 +320,7 @@ class ChessService with ListenableServiceMixin {
             board![row][col]!.variation == variation) {
           Position pos = Position(row: row, column: col);
           refreshValidMoves();
-          calculateValidMoves(
-              pos, board![row][col]!.variation, board![row][col]!.type);
+          calculateValidMoves(pos, board![row][col]!.variation);
 
           if (validMoves.value[kingPosition!.row][kingPosition.column]) {
             return true; // King is in check
@@ -277,11 +358,37 @@ class ChessService with ListenableServiceMixin {
         if (board![row][col] != null &&
             board![row][col]!.variation != variation) {
           Position pos = Position(row: row, column: col);
-          refreshValidMoves();
-          calculateValidMoves(
-              pos, board![row][col]!.variation, board![row][col]!.type);
+          // refreshValidMoves();
+          List<List<bool>> _validMoves =
+              List.generate(8, (index) => List.generate(8, (index) => false));
+          // calculateValidMoves(
+          //     pos, board![row][col]!.variation, board![row][col]!.type);
+          switch (board![row][col]!.type) {
+            case en.ChessPiece.pawn:
+              _validMoves = possiblePawnMoves(pos, variation);
+              break;
+            case en.ChessPiece.knight:
+              _validMoves = possibleKnightMoves(pos, variation);
 
-          if (validMoves.value[kingPosition.row][kingPosition.column]) {
+              break;
+            case en.ChessPiece.rook:
+              _validMoves = possibleRookMoves(pos, variation);
+
+              break;
+            case en.ChessPiece.bishop:
+              _validMoves = possibleBishopMoves(pos, variation);
+
+              break;
+            case en.ChessPiece.queen:
+              _validMoves = possibleQueenMoves(pos, variation);
+
+              break;
+            case en.ChessPiece.king:
+              _validMoves = possibleKingMoves(pos, variation);
+
+              break;
+          }
+          if (_validMoves[kingPosition.row][kingPosition.column]) {
             return true; // King is in check
           }
         }
@@ -299,7 +406,10 @@ class ChessService with ListenableServiceMixin {
   }
 
   // Function to get possible moves for a Pawn
-  possiblePawnMoves(Position position, en.Variation variation) {
+  List<List<bool>> possiblePawnMoves(
+      Position position, en.Variation variation) {
+    List<List<bool>> _validMoves =
+        List.generate(8, (index) => List.generate(8, (index) => false));
     // Move two or one when starting
     if ((position.row == 1 && variation == en.Variation.black) ||
         (position.row == 6 && variation == en.Variation.white)) {
@@ -308,10 +418,10 @@ class ChessService with ListenableServiceMixin {
           board![position.row + (2 * getDirection(variation))]
                   [position.column] ==
               null) {
-        (validMoves.value)[position.row + (2 * getDirection(variation))]
+        (_validMoves)[position.row + (2 * getDirection(variation))]
             [position.column] = true;
 
-        notifyListeners();
+        // notifyListeners();
       }
     }
     // Move only one tile at a time
@@ -319,10 +429,10 @@ class ChessService with ListenableServiceMixin {
             position.row + (1 * getDirection(variation)), position.column) &&
         board![position.row + (1 * getDirection(variation))][position.column] ==
             null) {
-      (validMoves.value)[position.row + (1 * getDirection(variation))]
+      (_validMoves)[position.row + (1 * getDirection(variation))]
           [position.column] = true;
 
-      notifyListeners();
+      // notifyListeners();
     }
 
     //capture opponent in left(white) or right(black) adjacent box
@@ -336,9 +446,9 @@ class ChessService with ListenableServiceMixin {
                     as model.ChessPiece)
                 .variation !=
             variation) {
-      (validMoves.value)[position.row + (1 * getDirection(variation))]
+      (_validMoves)[position.row + (1 * getDirection(variation))]
           [position.column - (1 * getDirection(variation))] = true;
-      notifyListeners();
+      // notifyListeners();
     }
 
     //capture opponent in right(white) or left(black) adjacent box
@@ -352,26 +462,30 @@ class ChessService with ListenableServiceMixin {
                     as model.ChessPiece)
                 .variation !=
             variation) {
-      (validMoves.value)[position.row + (1 * getDirection(variation))]
+      (_validMoves)[position.row + (1 * getDirection(variation))]
           [position.column + (1 * getDirection(variation))] = true;
-      notifyListeners();
+      // notifyListeners();
     }
+    return _validMoves;
   }
 
-  possibleKnightMoves(Position position, en.Variation variation) {
+  List<List<bool>> possibleKnightMoves(
+      Position position, en.Variation variation) {
+    List<List<bool>> knightValidMoves =
+        List.generate(8, (index) => List.generate(8, (index) => false));
     //Upper right side(1)
     if (withinBounds(position.row - (2), position.column + (1))) {
       if (board![position.row - (2)][position.column + (1)] == null) {
-        (validMoves.value)[position.row - (2)][position.column + (1)] = true;
+        (knightValidMoves)[position.row - (2)][position.column + (1)] = true;
       } else if (board![position.row - (2)][position.column + (1)] != null &&
           (board![position.row - (2)][position.column + (1)]
                       as model.ChessPiece)
                   .variation !=
               variation) {
-        (validMoves.value)[position.row - (2)][position.column + (1)] = true;
+        (knightValidMoves)[position.row - (2)][position.column + (1)] = true;
       }
 
-      notifyListeners();
+      // notifyListeners();
     }
 
     //Upper right side(2)
@@ -379,13 +493,13 @@ class ChessService with ListenableServiceMixin {
       int row = position.row - (1);
       int col = position.column + (2);
       if (board![row][col] == null) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       } else if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       }
 
-      notifyListeners();
+      // notifyListeners();
     }
 
     //Lower right side(2)
@@ -393,13 +507,13 @@ class ChessService with ListenableServiceMixin {
       int row = position.row + (1);
       int col = position.column + (2);
       if (board![row][col] == null) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       } else if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       }
 
-      notifyListeners();
+      // notifyListeners();
     }
 
     //Lower right side (1)
@@ -407,13 +521,13 @@ class ChessService with ListenableServiceMixin {
       int row = position.row + (2);
       int col = position.column + (1);
       if (board![row][col] == null) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       } else if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       }
 
-      notifyListeners();
+      // notifyListeners();
     }
 
     // Upper left side(1)
@@ -421,13 +535,13 @@ class ChessService with ListenableServiceMixin {
       int row = position.row - (2);
       int col = position.column - (1);
       if (board![row][col] == null) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       } else if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       }
 
-      notifyListeners();
+      // notifyListeners();
     }
 
     // Upper left side (2)
@@ -435,13 +549,13 @@ class ChessService with ListenableServiceMixin {
       int row = position.row - (1);
       int col = position.column - (2);
       if (board![row][col] == null) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       } else if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       }
 
-      notifyListeners();
+      // notifyListeners();
     }
 
     // Lower left side (2)
@@ -449,13 +563,13 @@ class ChessService with ListenableServiceMixin {
       int row = position.row + (1);
       int col = position.column - (2);
       if (board![row][col] == null) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       } else if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       }
 
-      notifyListeners();
+      // notifyListeners();
     }
 
     // Lower left side (1)
@@ -463,30 +577,36 @@ class ChessService with ListenableServiceMixin {
       int row = position.row + (2);
       int col = position.column - (1);
       if (board![row][col] == null) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       } else if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row][col] = true;
+        (knightValidMoves)[row][col] = true;
       }
 
-      notifyListeners();
+      // notifyListeners();
     }
+    return knightValidMoves;
   }
 
-  possibleRookMoves(Position position, en.Variation variation) {
+  List<List<bool>> possibleRookMoves(Position position, en.Variation variation,
+      [List<List<bool>>? pieceValidMoves]) {
     int row = position.row - 1;
     int col = position.column;
+    List<List<bool>>? rookValidMoves = pieceValidMoves;
+    rookValidMoves ??=
+        List.generate(8, (index) => List.generate(8, (index) => false));
+
     // positive y-axis
     while (withinBounds(row, col)) {
       if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row][col] = true;
+        (rookValidMoves)[row][col] = true;
         break;
       } else if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation == variation) {
         break;
       }
-      (validMoves.value)[row][col] = true;
+      (rookValidMoves)[row][col] = true;
       row = row - 1;
     }
 
@@ -496,13 +616,13 @@ class ChessService with ListenableServiceMixin {
     while (withinBounds(row2, col2)) {
       if (board![row2][col2] != null &&
           (board![row2][col2] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row2][col2] = true;
+        (rookValidMoves)[row2][col2] = true;
         break;
       } else if (board![row2][col2] != null &&
           (board![row2][col2] as model.ChessPiece).variation == variation) {
         break;
       }
-      (validMoves.value)[row2][col2] = true;
+      (rookValidMoves)[row2][col2] = true;
       row2 = row2 + 1;
     }
 
@@ -512,13 +632,13 @@ class ChessService with ListenableServiceMixin {
     while (withinBounds(row3, col3)) {
       if (board![row3][col3] != null &&
           (board![row3][col3] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row3][col3] = true;
+        (rookValidMoves)[row3][col3] = true;
         break;
       } else if (board![row3][col3] != null &&
           (board![row3][col3] as model.ChessPiece).variation == variation) {
         break;
       }
-      (validMoves.value)[row3][col3] = true;
+      (rookValidMoves)[row3][col3] = true;
       col3 = col3 - 1;
     }
 
@@ -528,32 +648,38 @@ class ChessService with ListenableServiceMixin {
     while (withinBounds(row4, col4)) {
       if (board![row4][col4] != null &&
           (board![row4][col4] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row4][col4] = true;
+        (rookValidMoves)[row4][col4] = true;
         break;
       } else if (board![row4][col4] != null &&
           (board![row4][col4] as model.ChessPiece).variation == variation) {
         break;
       }
-      (validMoves.value)[row4][col4] = true;
+      (rookValidMoves)[row4][col4] = true;
       col4 = col4 + 1;
     }
+    return rookValidMoves;
   }
 
-  possibleBishopMoves(Position position, en.Variation variation) {
+  List<List<bool>> possibleBishopMoves(
+      Position position, en.Variation variation,
+      [List<List<bool>>? pieceValidMoves]) {
     // upper right diagonal
     int row = position.row - 1;
     int col = position.column + 1;
+    List<List<bool>>? bishopValidMoves = pieceValidMoves;
+    bishopValidMoves ??=
+        List.generate(8, (index) => List.generate(8, (index) => false));
 
     while (withinBounds(row, col)) {
       if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row][col] = true;
+        (bishopValidMoves)[row][col] = true;
         break;
       } else if (board![row][col] != null &&
           (board![row][col] as model.ChessPiece).variation == variation) {
         break;
       }
-      (validMoves.value)[row][col] = true;
+      (bishopValidMoves)[row][col] = true;
       row = row - 1;
       col = col + 1;
     }
@@ -565,13 +691,13 @@ class ChessService with ListenableServiceMixin {
     while (withinBounds(row2, col2)) {
       if (board![row2][col2] != null &&
           (board![row2][col2] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row2][col2] = true;
+        (bishopValidMoves)[row2][col2] = true;
         break;
       } else if (board![row2][col2] != null &&
           (board![row2][col2] as model.ChessPiece).variation == variation) {
         break;
       }
-      (validMoves.value)[row2][col2] = true;
+      (bishopValidMoves)[row2][col2] = true;
       row2 = row2 - 1;
       col2 = col2 - 1;
     }
@@ -583,13 +709,13 @@ class ChessService with ListenableServiceMixin {
     while (withinBounds(row3, col3)) {
       if (board![row3][col3] != null &&
           (board![row3][col3] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row3][col3] = true;
+        (bishopValidMoves)[row3][col3] = true;
         break;
       } else if (board![row3][col3] != null &&
           (board![row3][col3] as model.ChessPiece).variation == variation) {
         break;
       }
-      (validMoves.value)[row3][col3] = true;
+      (bishopValidMoves)[row3][col3] = true;
       row3 = row3 + 1;
       col3 = col3 + 1;
     }
@@ -601,152 +727,175 @@ class ChessService with ListenableServiceMixin {
     while (withinBounds(row4, col4)) {
       if (board![row4][col4] != null &&
           (board![row4][col4] as model.ChessPiece).variation != variation) {
-        (validMoves.value)[row4][col4] = true;
+        (bishopValidMoves)[row4][col4] = true;
         break;
       } else if (board![row4][col4] != null &&
           (board![row4][col4] as model.ChessPiece).variation == variation) {
         break;
       }
-      (validMoves.value)[row4][col4] = true;
+      (bishopValidMoves)[row4][col4] = true;
       row4 = row4 + 1;
       col4 = col4 - 1;
     }
+    return bishopValidMoves;
   }
 
-  possibleQueenMoves(Position position, en.Variation variation) {
+  List<List<bool>> possibleQueenMoves(
+      Position position, en.Variation variation) {
+    List<List<bool>> queenValidMoves =
+        List.generate(8, (index) => List.generate(8, (index) => false));
     // Straight movements.................
-    possibleRookMoves(position, variation);
+    possibleRookMoves(position, variation, queenValidMoves);
     // Diagonal movements.................
-    possibleBishopMoves(position, variation);
+    possibleBishopMoves(position, variation, queenValidMoves);
+    return queenValidMoves;
   }
 
-  possibleKingMoves(Position position, en.Variation variation) {
-    // Up right diagonal
-    if (withinBounds(position.row - 1, position.column + 1)) {
-      if (board![position.row - 1][position.column + 1] == null) {
-        (validMoves.value)[position.row - 1][position.column + (1)] = true;
-      } else if (board![position.row - 1][position.column + (1)] != null &&
-          (board![position.row - 1][position.column + (1)] as model.ChessPiece)
-                  .variation !=
-              variation) {
-        // Allow a move only if moving the king does not result in check
+  List<List<bool>> possibleKingMoves(
+      Position position, en.Variation variation) {
+    List<List<bool>> kingValidMoves =
+        List.generate(8, (index) => List.generate(8, (index) => false));
 
-        (validMoves.value)[position.row - 1][position.column + (1)] = true;
-      }
+    List<Position> potentialMoves = [
+      Position(row: position.row - 1, column: position.column + 1),
+      Position(row: position.row - 1, column: position.column),
+      Position(row: position.row - 1, column: position.column - 1),
+      Position(row: position.row, column: position.column - 1),
+      Position(row: position.row, column: position.column + 1),
+      Position(row: position.row + 1, column: position.column + 1),
+      Position(row: position.row + 1, column: position.column),
+      Position(row: position.row + 1, column: position.column - 1),
+    ];
 
-      notifyListeners();
-    }
+    for (var move in potentialMoves) {
+      if (withinBounds(move.row, move.column)) {
+        bool isMoveValid = (board![move.row][move.column] == null ||
+            (board![move.row][move.column] != null &&
+                (board![move.row][move.column] as model.ChessPiece).variation !=
+                    variation));
 
-    // Up
-    if (withinBounds(position.row - 1, position.column)) {
-      if (board![position.row - 1][position.column] == null) {
-        (validMoves.value)[position.row - 1][position.column] = true;
-      } else if (board![position.row - 1][position.column] != null &&
-          (board![position.row - 1][position.column] as model.ChessPiece)
-                  .variation !=
-              variation) {
-        if (!isKingInCheck(variation)) {
-          (validMoves.value)[position.row - 1][position.column] = true;
+        if (isMoveValid) {
+          if (!isPositionUnderAttack(move, variation)) {
+            kingValidMoves[move.row][move.column] = true;
+          }
         }
       }
-
-      notifyListeners();
     }
 
-    // Up left diagonal
-    if (withinBounds(position.row - 1, position.column - 1)) {
-      if (board![position.row - 1][position.column - 1] == null) {
-        (validMoves.value)[position.row - 1][position.column - 1] = true;
-      } else if (board![position.row - 1][position.column - 1] != null &&
-          (board![position.row - 1][position.column - 1] as model.ChessPiece)
-                  .variation !=
-              variation) {
-        if (!isKingInCheck(variation)) {
-          (validMoves.value)[position.row - 1][position.column - 1] = true;
+    return kingValidMoves;
+  }
+
+  bool isPositionUnderAttack(Position position, en.Variation variation) {
+    // Check for pawn attacks
+    int pawnDirection = (variation == en.Variation.white) ? -1 : 1;
+    List<Position> pawnAttacks = [
+      Position(row: position.row + pawnDirection, column: position.column - 1),
+      Position(row: position.row + pawnDirection, column: position.column + 1),
+    ];
+
+    for (var attack in pawnAttacks) {
+      if (withinBounds(attack.row, attack.column) &&
+          board![attack.row][attack.column] != null &&
+          board![attack.row][attack.column]!.type == en.ChessPiece.pawn &&
+          board![attack.row][attack.column]!.variation != variation) {
+        return true;
+      }
+    }
+
+    // Check for knight attacks
+    List<Position> knightMoves = [
+      Position(row: position.row - 2, column: position.column - 1),
+      Position(row: position.row - 2, column: position.column + 1),
+      Position(row: position.row - 1, column: position.column - 2),
+      Position(row: position.row - 1, column: position.column + 2),
+      Position(row: position.row + 1, column: position.column - 2),
+      Position(row: position.row + 1, column: position.column + 2),
+      Position(row: position.row + 2, column: position.column - 1),
+      Position(row: position.row + 2, column: position.column + 1),
+    ];
+
+    for (var move in knightMoves) {
+      if (withinBounds(move.row, move.column) &&
+          board![move.row][move.column] != null &&
+          board![move.row][move.column]!.type == en.ChessPiece.knight &&
+          board![move.row][move.column]!.variation != variation) {
+        return true;
+      }
+    }
+
+    // Check for attacks along ranks, files, and diagonals (rook, bishop, queen)
+    List<List<int>> directions = [
+      [-1, 0], [1, 0], [0, -1], [0, 1], // Rook directions
+      [-1, -1], [-1, 1], [1, -1], [1, 1], // Bishop directions
+    ];
+
+    for (var direction in directions) {
+      int r = position.row + direction[0];
+      int c = position.column + direction[1];
+      while (withinBounds(r, c)) {
+        if (board![r][c] != null) {
+          if (board![r][c]!.variation != variation) {
+            if ((board![r][c]!.type == en.ChessPiece.rook &&
+                    direction[0] * direction[1] == 0) ||
+                (board![r][c]!.type == en.ChessPiece.bishop &&
+                    direction[0] * direction[1] != 0) ||
+                board![r][c]!.type == en.ChessPiece.queen) {
+              return true;
+            }
+          }
+          break;
+        }
+        r += direction[0];
+        c += direction[1];
+      }
+    }
+
+    return false;
+  }
+
+  bool isCheckmate(en.Variation variation) {
+    // First, check if the king is in check
+    if (!isKingInCheck(variation)) {
+      return false;
+    }
+
+    // Check all pieces of the current player
+    for (int row = 0; row < 8; row++) {
+      for (int col = 0; col < 8; col++) {
+        if (board![row][col] != null &&
+            board![row][col]!.variation == variation) {
+          Position currentPosition = Position(row: row, column: col);
+          List<List<bool>> possibleMoves =
+              calculateValidMoves(currentPosition, variation);
+
+          // Check if any of these moves can get the king out of check
+          for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+              if (possibleMoves[i][j]) {
+                // Try the move
+                model.ChessPiece? capturedPiece = board![i][j];
+                board![i][j] = board![row][col];
+                board![row][col] = null;
+
+                // Check if the king is still in check after this move
+                bool stillInCheck = isKingInCheck(variation);
+
+                // Undo the move
+                board![row][col] = board![i][j];
+                board![i][j] = capturedPiece;
+
+                // If this move gets the king out of check, it's not checkmate
+                if (!stillInCheck) {
+                  return false;
+                }
+              }
+            }
+          }
         }
       }
-
-      notifyListeners();
     }
 
-    //down left diagonal
-    if (withinBounds(position.row + 1, position.column - 1)) {
-      if (board![position.row + 1][position.column - 1] == null) {
-        (validMoves.value)[position.row + 1][position.column - 1] = true;
-      } else if (board![position.row + 1][position.column - 1] != null &&
-          (board![position.row + 1][position.column - 1] as model.ChessPiece)
-                  .variation !=
-              variation) {
-        if (!isKingInCheck(variation)) {
-          (validMoves.value)[position.row + 1][position.column - 1] = true;
-        }
-      }
-
-      notifyListeners();
-    }
-
-    //down
-    if (withinBounds(position.row + 1, position.column)) {
-      if (board![position.row + 1][position.column] == null) {
-        (validMoves.value)[position.row + 1][position.column] = true;
-      } else if (board![position.row + 1][position.column] != null &&
-          (board![position.row + 1][position.column] as model.ChessPiece)
-                  .variation !=
-              variation) {
-        if (!isKingInCheck(variation)) {
-          (validMoves.value)[position.row + 1][position.column] = true;
-        }
-      }
-
-      notifyListeners();
-    }
-
-    // down right diagonal
-    if (withinBounds(position.row + 1, position.column + 1)) {
-      if (board![position.row + 1][position.column + 1] == null) {
-        (validMoves.value)[position.row + 1][position.column + 1] = true;
-      } else if (board![position.row + 1][position.column + 1] != null &&
-          (board![position.row + 1][position.column + 1] as model.ChessPiece)
-                  .variation !=
-              variation) {
-        if (!isKingInCheck(variation)) {
-          (validMoves.value)[position.row + 1][position.column + 1] = true;
-        }
-      }
-
-      notifyListeners();
-    }
-
-    // left
-    if (withinBounds(position.row, position.column - 1)) {
-      if (board![position.row][position.column - 1] == null) {
-        (validMoves.value)[position.row][position.column - 1] = true;
-      } else if (board![position.row][position.column - 1] != null &&
-          (board![position.row][position.column - 1] as model.ChessPiece)
-                  .variation !=
-              variation) {
-        if (!isKingInCheck(variation)) {
-          (validMoves.value)[position.row][position.column - 1] = true;
-        }
-      }
-
-      notifyListeners();
-    }
-
-    // right
-    if (withinBounds(position.row, position.column + 1)) {
-      if (board![position.row][position.column + 1] == null) {
-        (validMoves.value)[position.row][position.column + 1] = true;
-      } else if (board![position.row][position.column + 1] != null &&
-          (board![position.row][position.column + 1] as model.ChessPiece)
-                  .variation !=
-              variation) {
-        if (!isKingInCheck(variation)) {
-          (validMoves.value)[position.row][position.column + 1] = true;
-        }
-      }
-
-      notifyListeners();
-    }
+    // If we've checked all possible moves and none get the king out of check, it's checkmate
+    return true;
   }
 }
