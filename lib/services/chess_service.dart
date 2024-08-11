@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:chess/app/app_assets.dart';
 import 'package:chess/models/enums.dart' as en; // Chess Piece as an enum
 import 'package:chess/services/helper.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:stacked/stacked.dart';
 import '../models/chess_piece.dart' as model; //Chess Piece as a model
 import '../models/position.dart';
@@ -38,85 +39,86 @@ class ChessService with ListenableServiceMixin {
           variation: en.Variation.black);
       starting[6][i] = model.ChessPiece(
           type: en.ChessPiece.pawn,
-          svg: AppAssets.pawnSvg(en.pieceColor.light),
+          svg: AppAssets.whitePawnSvg(),
           variation: en.Variation.white);
     }
 
     //Rooks position
     starting[0][0] = model.ChessPiece(
         type: en.ChessPiece.rook,
-        svg: AppAssets.rookSvg(en.pieceColor.dark),
+        svg: AppAssets.blackRookSvg(),
         variation: en.Variation.black);
     starting[0][7] = model.ChessPiece(
         type: en.ChessPiece.rook,
-        svg: AppAssets.rookSvg(en.pieceColor.dark),
+        svg: AppAssets.blackRookSvg(),
         variation: en.Variation.black);
 
     starting[7][0] = model.ChessPiece(
         type: en.ChessPiece.rook,
-        svg: AppAssets.rookSvg(en.pieceColor.light),
+        svg: AppAssets.whiteRookSvg(),
         variation: en.Variation.white);
     starting[7][7] = model.ChessPiece(
         type: en.ChessPiece.rook,
-        svg: AppAssets.rookSvg(en.pieceColor.light),
+        svg: AppAssets.whiteRookSvg(),
         variation: en.Variation.white);
 
     //Knights position
     starting[0][1] = model.ChessPiece(
         type: en.ChessPiece.knight,
-        svg: AppAssets.knightSvg(en.pieceColor.dark),
+        svg: AppAssets.blackKnightSvg(),
         variation: en.Variation.black);
     starting[0][6] = model.ChessPiece(
         type: en.ChessPiece.knight,
-        svg: AppAssets.knightSvg(en.pieceColor.dark),
+        svg: AppAssets.blackKnightSvg(),
         variation: en.Variation.black);
 
     starting[7][1] = model.ChessPiece(
         type: en.ChessPiece.knight,
-        svg: AppAssets.knightSvg(en.pieceColor.light),
+        svg: AppAssets.whiteKnightSvg(),
         variation: en.Variation.white);
     starting[7][6] = model.ChessPiece(
         type: en.ChessPiece.knight,
-        svg: AppAssets.knightSvg(en.pieceColor.light),
+        svg: AppAssets.whiteKnightSvg(),
         variation: en.Variation.white);
 
     //Bishops position
     starting[0][2] = model.ChessPiece(
         type: en.ChessPiece.bishop,
-        svg: AppAssets.bishopSvg(en.pieceColor.dark),
+        svg: AppAssets.blackBishopSvg(),
         variation: en.Variation.black);
     starting[0][5] = model.ChessPiece(
         type: en.ChessPiece.bishop,
-        svg: AppAssets.bishopSvg(en.pieceColor.dark),
+        svg: AppAssets.blackBishopSvg(),
         variation: en.Variation.black);
 
     starting[7][2] = model.ChessPiece(
         type: en.ChessPiece.bishop,
-        svg: AppAssets.bishopSvg(en.pieceColor.light),
+        svg: AppAssets.whiteBishopSvg(),
         variation: en.Variation.white);
     starting[7][5] = model.ChessPiece(
         type: en.ChessPiece.bishop,
-        svg: AppAssets.bishopSvg(en.pieceColor.light),
+        svg: AppAssets.whiteBishopSvg(),
         variation: en.Variation.white);
 
     //Queens position
     starting[0][4] = model.ChessPiece(
         type: en.ChessPiece.queen,
-        svg: AppAssets.queenSvg(en.pieceColor.dark),
+        svg: AppAssets.blackQueenSvg(),
         variation: en.Variation.black);
     starting[7][3] = model.ChessPiece(
         type: en.ChessPiece.queen,
-        svg: AppAssets.queenSvg(en.pieceColor.light),
+        svg: AppAssets.whiteQueenSvg(),
         variation: en.Variation.white);
 
     //Kings position
     starting[0][3] = model.ChessPiece(
         type: en.ChessPiece.king,
-        svg: AppAssets.kingSvg(en.pieceColor.dark),
+        svg: AppAssets.blackkingSvg(),
         variation: en.Variation.black);
     starting[7][4] = model.ChessPiece(
         type: en.ChessPiece.king,
-        svg: AppAssets.kingSvg(en.pieceColor.light),
+        svg: AppAssets.whitekingSvg(),
+        // svg: SvgPicture.asset("assets/white_king.svg"),
         variation: en.Variation.white);
 
     board = starting;
