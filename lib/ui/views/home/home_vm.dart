@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:chess/services/chess_service.dart';
 import 'package:stacked/stacked.dart';
 
@@ -15,6 +17,17 @@ class HomeViewModel extends ReactiveViewModel {
   select(int row, int col) {
     chessService.select(
         Position(row: row, column: col), chessService.board![row][col]);
+
+    notifyListeners();
+  }
+
+  restartGame() {
+    chessService.init();
+    notifyListeners();
+  }
+
+  undoMove() {
+    chessService.undoMove();
     notifyListeners();
   }
 }

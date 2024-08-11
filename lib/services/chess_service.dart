@@ -7,19 +7,24 @@ import 'package:chess/services/helper.dart';
 
 import 'package:stacked/stacked.dart';
 import '../models/chess_piece.dart' as model; //Chess Piece as a model
+import '../models/move.dart';
+import '../models/move_history.dart';
 import '../models/position.dart';
+import 'chess_bot.dart';
 
 class ChessService with ListenableServiceMixin {
   List<List<model.ChessPiece?>>? board;
+  List<MoveHistory> moveHistory = [];
   final ReactiveValue<model.ChessPiece?> _selectedPiece = ReactiveValue(null);
   final ReactiveValue<Position?> _selectedPosition = ReactiveValue(null);
-  final Map<String, int> whiteKingPosition = {"row": 7, "col": 4};
-  final Map<String, int> blackKingPosition = {"row": 0, "col": 3};
+  Map<String, int> whiteKingPosition = {"row": 7, "col": 4};
+  Map<String, int> blackKingPosition = {"row": 0, "col": 3};
   final ReactiveValue<en.Variation> _previousPlayerVariation =
       ReactiveValue(en.Variation.black);
   final ReactiveValue<bool> check = ReactiveValue(false);
   final ReactiveValue<bool> checkMate = ReactiveValue(false);
   Position? checkedPosition;
+  en.Variation? winner;
 
   //Tracks the possible moves for a selected piece
   final ReactiveValue<List<List<bool>>> validMoves = ReactiveValue(
@@ -32,8 +37,22 @@ class ChessService with ListenableServiceMixin {
   bool get getCheck => check.value;
   bool get getCheckMate => checkMate.value;
 
+  initializeValues() {
+    checkMate.value = false;
+    check.value = false;
+    checkedPosition = null;
+    winner = null;
+    whiteKingPosition = {"row": 7, "col": 4};
+    blackKingPosition = {"row": 0, "col": 3};
+    _selectedPiece.value = null;
+    _selectedPosition.value = null;
+    _previousPlayerVariation.value = en.Variation.black;
+    notifyListeners();
+  }
+
   //Initialize the chess board
   void init() {
+    initializeValues();
     List<List<model.ChessPiece?>>? starting =
         List.generate(8, (index) => List.generate(8, (index) => null));
 
@@ -111,22 +130,22 @@ class ChessService with ListenableServiceMixin {
         variation: en.Variation.white);
 
     //Queens position
-    starting[0][4] = model.ChessPiece(
+    starting[0][3] = model.ChessPiece(
         type: en.ChessPiece.queen,
         svg: AppAssets.blackQueenSvg(),
         variation: en.Variation.black);
-    starting[7][3] = model.ChessPiece(
+    starting[7][4] = model.ChessPiece(
         type: en.ChessPiece.queen,
         svg: AppAssets.whiteQueenSvg(),
         variation: en.Variation.white);
 
     //Kings position
-    starting[0][3] = model.ChessPiece(
+    starting[0][4] = model.ChessPiece(
         type: en.ChessPiece.king,
         svg: AppAssets.blackkingSvg(),
         ableToCastle: true,
         variation: en.Variation.black);
-    starting[7][4] = model.ChessPiece(
+    starting[7][3] = model.ChessPiece(
         type: en.ChessPiece.king,
         svg: AppAssets.whitekingSvg(),
         ableToCastle: true,
@@ -174,51 +193,108 @@ class ChessService with ListenableServiceMixin {
   // This function runs check before a board tile can be updated with a piece
   void makeMove(Position from, Position to) {
     model.ChessPiece movingPiece = board![from.row][from.column]!;
-    // Move if this is a castling move
+    model.ChessPiece? capturedPiece = board![to.row][to.column];
+    bool? prevCastlingRights = movingPiece.ableToCastle;
+
+    // Save move to history
+    moveHistory.add(
+        MoveHistory(from, to, movingPiece, capturedPiece, prevCastlingRights));
+
+    // Handle castling
     if (movingPiece.type == en.ChessPiece.king &&
         (to.column - from.column).abs() == 2) {
-      // Determine rook positions
       int rookFromCol = to.column > from.column ? 7 : 0;
       int rookToCol = to.column > from.column ? to.column - 1 : to.column + 1;
 
-      // Move the rook
       board![to.row][rookToCol] = board![from.row][rookFromCol];
       board![from.row][rookFromCol] = null;
       board![to.row][rookToCol]!.ableToCastle = false;
     }
 
-    // Existing move logic here
-    updateTilePiece(board![from.row][from.column]!, to);
+    // Move the piece
+    board![to.row][to.column] = movingPiece;
+    board![from.row][from.column] = null;
 
-    // After the move is made, check for checkmate
-    en.Variation opponentVariation =
-        board![to.row][to.column]!.variation == en.Variation.white
-            ? en.Variation.black
-            : en.Variation.white;
+    // Update king position if necessary
+    if (movingPiece.type == en.ChessPiece.king) {
+      if (movingPiece.variation == en.Variation.white) {
+        whiteKingPosition = {"row": to.row, "col": to.column};
+      } else {
+        blackKingPosition = {"row": to.row, "col": to.column};
+      }
+    }
 
-    Position position =
-        board![to.row][to.column]!.variation == en.Variation.white
-            ? Position(
-                row: blackKingPosition["row"]!,
-                column: blackKingPosition["col"]!)
-            : Position(
-                row: whiteKingPosition["row"]!,
-                column: whiteKingPosition["col"]!);
+    // Remove ability to castle if necessary
+    if (movingPiece.type == en.ChessPiece.king ||
+        movingPiece.type == en.ChessPiece.rook) {
+      movingPiece.ableToCastle = false;
+    }
 
+    // Switch to the next player
+    _previousPlayerVariation.value = movingPiece.variation == en.Variation.white
+        ? en.Variation.black
+        : en.Variation.white;
+
+    // Check for check and checkmate
+    en.Variation opponentVariation = movingPiece.variation == en.Variation.white
+        ? en.Variation.black
+        : en.Variation.white;
+    Position kingPosition = opponentVariation == en.Variation.white
+        ? Position(
+            row: whiteKingPosition["row"]!, column: whiteKingPosition["col"]!)
+        : Position(
+            row: blackKingPosition["row"]!, column: blackKingPosition["col"]!);
+
+    check.value = isPositionUnderAttack(kingPosition, opponentVariation);
     checkMate.value = isCheckmate(opponentVariation);
-    check.value = isPositionUnderAttack(position, opponentVariation);
 
     if (checkMate.value) {
-      // Game over logic here
-      checkMate.value = true;
-      log("Checkmate! ${board![to.row][to.column]!.variation} wins!");
-      // You might want to set a game state variable or trigger an end game event
+      winner = movingPiece.variation;
+      log("Checkmate! ${movingPiece.variation} wins!");
     } else if (check.value) {
-      checkedPosition = position;
+      checkedPosition = kingPosition;
       log("Check!");
     } else {
       checkedPosition = null;
     }
+
+    notifyListeners();
+  }
+
+  void undoMove() {
+    if (moveHistory.isEmpty) return;
+
+    MoveHistory lastMove = moveHistory.removeLast();
+
+    // Restore the board state
+    board![lastMove.from.row][lastMove.from.column] = lastMove.movedPiece;
+    board![lastMove.to.row][lastMove.to.column] = lastMove.capturedPiece;
+
+    // Restore king positions if necessary
+    if (lastMove.movedPiece.type == en.ChessPiece.king) {
+      if (lastMove.movedPiece.variation == en.Variation.white) {
+        whiteKingPosition = {
+          "row": lastMove.from.row,
+          "col": lastMove.from.column
+        };
+      } else {
+        blackKingPosition = {
+          "row": lastMove.from.row,
+          "col": lastMove.from.column
+        };
+      }
+    }
+
+    // Restore castling rights if necessary
+    if (lastMove.movedPiece.type == en.ChessPiece.king ||
+        lastMove.movedPiece.type == en.ChessPiece.rook) {
+      lastMove.movedPiece.ableToCastle = lastMove.prevCastlingRights;
+    }
+
+    // Switch back to the previous player
+    _previousPlayerVariation.value = lastMove.movedPiece.variation;
+
+    notifyListeners();
   }
 
   bool canCastle(
@@ -892,5 +968,52 @@ class ChessService with ListenableServiceMixin {
 
     // If we've checked all possible moves and none get the king out of check, it's checkmate
     return true;
+  }
+
+  // Chess bot helper functions...
+  int evaluateBoard() {
+    int score = 0;
+    for (int row = 0; row < 8; row++) {
+      for (int col = 0; col < 8; col++) {
+        if (board![row][col] != null) {
+          score +=
+              getPieceValue(board![row][col]!, Position(row: row, column: col));
+        }
+      }
+    }
+    return score;
+  }
+
+  int getPieceValue(model.ChessPiece piece, Position position) {
+    int baseValue;
+    switch (piece.type) {
+      case en.ChessPiece.pawn:
+        baseValue = 10;
+        break;
+      case en.ChessPiece.knight:
+      case en.ChessPiece.bishop:
+        baseValue = 30;
+        break;
+      case en.ChessPiece.rook:
+        baseValue = 50;
+        break;
+      case en.ChessPiece.queen:
+        baseValue = 90;
+        break;
+      case en.ChessPiece.king:
+        baseValue = 900;
+        break;
+    }
+
+    // Add position-based adjustments here
+
+    return piece.variation == en.Variation.white ? baseValue : -baseValue;
+  }
+
+  Future<void> makeBotMove() async {
+    ChessBot bot =
+        ChessBot(this, en.Variation.black); // Assuming bot plays as black
+    Move bestMove = bot.findBestMove(3); // Search 3 moves ahead
+    makeMove(bestMove.from, bestMove.to);
   }
 }
