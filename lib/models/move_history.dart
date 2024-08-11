@@ -1,5 +1,4 @@
 import 'package:chess/models/chess_piece.dart' as model;
-import 'package:chess/models/enums.dart' as en;
 
 import 'position.dart';
 

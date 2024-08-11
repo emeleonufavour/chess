@@ -15,7 +15,7 @@ class ChessBot {
 
     for (int row = 0; row < 8; row++) {
       for (int col = 0; col < 8; col++) {
-        if (chessService.board![row][col] != null &&
+        if (chessService.board?[row][col] != null &&
             chessService.board![row][col]!.variation == variation) {
           Position from = Position(row: row, column: col);
           List<List<bool>> validMoves =
@@ -36,8 +36,10 @@ class ChessBot {
   }
 
   Future<void> makeMove() async {
-    // Implement bot move logic here
-    // This will use the evaluation and search methods
+    if (chessService.getPreviousPlayerVariation != botColor) {
+      Move bestMove = findBestMove(3); // Search 3 moves ahead
+      chessService.makeMove(bestMove.from, bestMove.to);
+    }
   }
 
   int minimax(int depth, bool isMaximizingPlayer, int alpha, int beta) {
@@ -45,31 +47,36 @@ class ChessBot {
       return chessService.evaluateBoard();
     }
 
-    List<Move> possibleMoves = generateAllPossibleMoves(botColor);
+    List<Move> possibleMoves = generateAllPossibleMoves(
+        isMaximizingPlayer ? botColor : getOppositeVariation(botColor));
 
     if (isMaximizingPlayer) {
       int maxEval = -9999;
       for (Move move in possibleMoves) {
-        chessService.makeMove(move.from, move.to);
-        int eval = minimax(depth - 1, false, alpha, beta);
-        chessService.undoMove();
-        maxEval = math.max(maxEval, eval);
-        alpha = math.max(alpha, eval);
-        if (beta <= alpha) {
-          break;
+        if (chessService.isValidMove(move.from, move.to)) {
+          chessService.makeMove(move.from, move.to);
+          int eval = minimax(depth - 1, false, alpha, beta);
+          chessService.undoMove();
+          maxEval = math.max(maxEval, eval);
+          alpha = math.max(alpha, eval);
+          if (beta <= alpha) {
+            break;
+          }
         }
       }
       return maxEval;
     } else {
       int minEval = 9999;
       for (Move move in possibleMoves) {
-        chessService.makeMove(move.from, move.to);
-        int eval = minimax(depth - 1, true, alpha, beta);
-        chessService.undoMove();
-        minEval = math.min(minEval, eval);
-        beta = math.min(beta, eval);
-        if (beta <= alpha) {
-          break;
+        if (chessService.isValidMove(move.from, move.to)) {
+          chessService.makeMove(move.from, move.to);
+          int eval = minimax(depth - 1, true, alpha, beta);
+          chessService.undoMove();
+          minEval = math.min(minEval, eval);
+          beta = math.min(beta, eval);
+          if (beta <= alpha) {
+            break;
+          }
         }
       }
       return minEval;
@@ -78,20 +85,32 @@ class ChessBot {
 
   Move findBestMove(int depth) {
     List<Move> possibleMoves = generateAllPossibleMoves(botColor);
+    if (possibleMoves.isEmpty) {
+      throw Exception("No valid moves available for the bot");
+    }
+
     Move bestMove = possibleMoves[0];
     int bestValue = -9999;
 
     for (Move move in possibleMoves) {
-      chessService.makeMove(move.from, move.to);
-      int moveValue = minimax(depth - 1, false, -10000, 10000);
-      chessService.undoMove();
+      if (chessService.isValidMove(move.from, move.to)) {
+        chessService.makeMove(move.from, move.to);
+        int moveValue = minimax(depth - 1, false, -10000, 10000);
+        chessService.undoMove();
 
-      if (moveValue > bestValue) {
-        bestMove = move;
-        bestValue = moveValue;
+        if (moveValue > bestValue) {
+          bestMove = move;
+          bestValue = moveValue;
+        }
       }
     }
 
     return bestMove;
+  }
+
+  en.Variation getOppositeVariation(en.Variation variation) {
+    return variation == en.Variation.white
+        ? en.Variation.black
+        : en.Variation.white;
   }
 }

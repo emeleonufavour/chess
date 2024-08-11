@@ -26,7 +26,7 @@ class HomePage extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      //Black player
+                      // Chess bot
                       Padding(
                         padding: EdgeInsets.symmetric(
                             vertical: size.height * 0.02,
@@ -54,17 +54,19 @@ class HomePage extends StatelessWidget {
                                         borderRadius: const BorderRadius.all(
                                             Radius.circular(8))),
                                     child: Text(
-                                      model.chessService.winner ==
-                                              Variation.black
-                                          ? "Checkmate! I win🙂"
-                                          : "Nice game bro",
+                                      model.isBusy
+                                          ? "Thinking..."
+                                          : model.chessService.winner ==
+                                                  Variation.black
+                                              ? "Checkmate! I win🙂"
+                                              : "Nice game bro",
                                       style: TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold),
                                     ),
                                   )
                                 : const Text(
-                                    "Player 2",
+                                    "Bot",
                                     style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold),
@@ -84,7 +86,7 @@ class HomePage extends StatelessWidget {
                               int col = index % 8;
 
                               return GestureDetector(
-                                onTap: () => model.select(row, col),
+                                onTap: () async => await model.select(row, col),
                                 child: Stack(children: [
                                   Container(
                                     width: double.maxFinite,
@@ -172,50 +174,25 @@ class HomePage extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Row(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: GestureDetector(
-                              onTap: () => model.undoMove(),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                    color: Colors.blueAccent,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(8))),
-                                child: const Text(
-                                  "Undo",
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20),
-                                ),
-                              ),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: GestureDetector(
+                          onTap: () => model.restartGame(),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                                color: Colors.blueAccent,
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(8))),
+                            child: const Text(
+                              "Restart",
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20),
                             ),
                           ),
-                          // Restart
-                          Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: GestureDetector(
-                              onTap: () => model.restartGame(),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                    color: Colors.blueAccent,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(8))),
-                                child: const Text(
-                                  "Restart",
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
