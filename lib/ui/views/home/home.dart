@@ -33,17 +33,41 @@ class HomePage extends StatelessWidget {
 
                             return GestureDetector(
                               onTap: () => model.select(row, col),
-                              child: Container(
-                                color: model.isSelected(row, col)
-                                    ? AppColors.selected
-                                    : model.chessService
-                                            .getHighlightedTiles[row][col]
-                                        ? AppColors.highlight
-                                        : (((row + col) % 2) == 0
-                                            ? AppColors.lightTile
-                                            : AppColors.darkTile),
-                                child: model.chessService.board![row][col]?.svg,
-                              ),
+                              child: Stack(children: [
+                                Container(
+                                  width: double.maxFinite,
+                                  height: double.maxFinite,
+                                  color: model.isSelected(row, col)
+                                      ? AppColors.selected
+                                      : (((row + col) % 2) == 0
+                                          ? AppColors.lightTile
+                                          : AppColors.darkTile),
+                                ),
+                                if (model.chessService.getHighlightedTiles[row]
+                                    [col])
+                                  Container(
+                                    width: double.maxFinite,
+                                    height: double.maxFinite,
+                                    color: AppColors.highlight.withOpacity(0.6),
+                                  ),
+                                // Check color
+                                if (model.chessService.getCheckedPosition !=
+                                        null &&
+                                    model.chessService.getCheckedPosition!
+                                            .row ==
+                                        row &&
+                                    model.chessService.getCheckedPosition!
+                                            .column ==
+                                        col)
+                                  Container(
+                                      width: double.maxFinite,
+                                      height: double.maxFinite,
+                                      color: Colors.redAccent),
+                                // Chess piece
+                                if (model.chessService.board![row][col]?.svg !=
+                                    null)
+                                  model.chessService.board![row][col]!.svg,
+                              ]),
                             );
                           }),
                     )

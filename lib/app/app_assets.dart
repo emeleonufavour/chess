@@ -22,7 +22,7 @@ class AppAssets {
   //       color: color.color,
   //     );
   static SvgPicture whiteKnightSvg() =>
-      SvgPicture.asset("assets/white_king.svg");
+      SvgPicture.asset("assets/white_knight.svg");
 
   static SvgPicture blackKnightSvg() =>
       SvgPicture.asset("assets/black_knight.svg");
