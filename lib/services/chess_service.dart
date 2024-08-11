@@ -13,7 +13,7 @@ class ChessService with ListenableServiceMixin {
   final ReactiveValue<Position?> _selectedPosition = ReactiveValue(null);
   final Map<String, int> whiteKingPosition = {"row": 7, "col": 4};
   final Map<String, int> blackKingPosition = {"row": 0, "col": 3};
-  final ReactiveValue<en.Variation?> _previousPlayerVariation =
+  final ReactiveValue<en.Variation> _previousPlayerVariation =
       ReactiveValue(en.Variation.black);
   bool kingInCheck = false;
 
@@ -147,13 +147,9 @@ class ChessService with ListenableServiceMixin {
     }
     // Check if owner's piece is being tapped
     else if (board![position.row][position.column] != null) {
-      // Make sure a user cannot tap his own piece twice in succession
-      _selectedPiece.value = piece;
-
-      if (_previousPlayerVariation.value == null ||
-          (_selectedPiece.value != null &&
-              _previousPlayerVariation.value !=
-                  _selectedPiece.value!.variation)) {
+      if ((piece != null &&
+          _previousPlayerVariation.value != piece!.variation)) {
+        _selectedPiece.value = piece;
         refreshValidMoves();
         _selectedPosition.value = position;
 
@@ -164,6 +160,7 @@ class ChessService with ListenableServiceMixin {
     notifyListeners();
   }
 
+  // This function runs check before a board tile can be updated with a piece
   void makeMove(Position from, Position to) {
     // Existing move logic here
     updateTilePiece(board![from.row][from.column]!, to);
@@ -221,9 +218,9 @@ class ChessService with ListenableServiceMixin {
     }
   }
 
+  // This function handles capturing a piece on the board
   capturePiece(Position from, Position to) {
     makeMove(from, to);
-    // updateTilePiece(piece, position);
   }
 
   int getDirection(en.Variation variation) {
@@ -259,14 +256,14 @@ class ChessService with ListenableServiceMixin {
         break;
     }
 
-    // Find the current position of the king
+    // Finds the current position of the king
     Position kingPosition = variation == en.Variation.black
         ? Position(
             row: blackKingPosition["row"]!, column: blackKingPosition["col"]!)
         : Position(
             row: whiteKingPosition["row"]!, column: whiteKingPosition["col"]!);
 
-    // Filter out moves that would leave the king in check
+    // Filters out moves that would leave the king in check
     for (int i = 0; i < 8; i++) {
       for (int j = 0; j < 8; j++) {
         if (potentialMoves[i][j]) {
@@ -297,48 +294,6 @@ class ChessService with ListenableServiceMixin {
     }
 
     return validMoves;
-  }
-
-  // Check to know if the king is in check
-  bool isOpponentKingInCheck(en.Variation variation,
-      [Position? possibleKingPosition]) {
-    Position? kingPosition = possibleKingPosition;
-    List<List<bool>> previousValidMoves = validMoves.value;
-
-    // If possible king's location is not provided then locate the opponent king's position
-    if (possibleKingPosition == null) {
-      for (int row = 0; row < 8; row++) {
-        for (int col = 0; col < 8; col++) {
-          if (board![row][col] != null &&
-              board![row][col]!.type == en.ChessPiece.king &&
-              board![row][col]!.variation != variation) {
-            kingPosition = Position(row: row, column: col);
-            break;
-          }
-        }
-        if (kingPosition != null) break;
-      }
-
-      if (kingPosition == null) return false; // King not found, not in check
-    }
-
-    // Check for each type of players piece if it can attack the opponent king's position
-    for (int row = 0; row < 8; row++) {
-      for (int col = 0; col < 8; col++) {
-        if (board![row][col] != null &&
-            board![row][col]!.variation == variation) {
-          Position pos = Position(row: row, column: col);
-          refreshValidMoves();
-          calculateValidMoves(pos, board![row][col]!.variation);
-
-          if (validMoves.value[kingPosition!.row][kingPosition.column]) {
-            return true; // King is in check
-          }
-        }
-      }
-    }
-    validMoves.value = previousValidMoves;
-    return false; // King is not in check
   }
 
   // Makes no tile to be highlighted
