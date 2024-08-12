@@ -18,14 +18,15 @@ class HomeViewModel extends ReactiveViewModel {
 
   Future<void> select(int row, int col) async {
     final position = Position(row: row, column: col);
+    // This prevents the player from playing during Bot's turn
     if (!isPlayerTurn) {
-      return; // Prevent player from moving during bot's turn
+      return;
     }
     await chessService.select(position, chessService.board![row][col]);
+    // Move the bot if turn
     if (_chessService.getPreviousPlayerVariation ==
         _chessService.bot?.botColor) {
-      // If it's now the bot's turn, make a move
-      makeBotMove();
+      await makeBotMove();
     }
 
     notifyListeners();
@@ -43,8 +44,8 @@ class HomeViewModel extends ReactiveViewModel {
     notifyListeners();
   }
 
-  undoMove() {
-    chessService.undoMove();
-    notifyListeners();
-  }
+  // undoMove() {
+  //   chessService.undoMove();
+  //   notifyListeners();
+  // }
 }

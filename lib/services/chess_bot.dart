@@ -10,6 +10,7 @@ class ChessBot {
 
   ChessBot(this.chessService, this.botColor);
 
+  /// This function is used to find all possible moves for the [ChessBot]
   List<Move> generateAllPossibleMoves(en.Variation variation) {
     List<Move> allMoves = [];
 
@@ -37,11 +38,13 @@ class ChessBot {
 
   Future<void> makeMove() async {
     if (chessService.getPreviousPlayerVariation != botColor) {
-      Move bestMove = findBestMove(3); // Search 3 moves ahead
+      Move bestMove = findBestMove(3);
       chessService.makeMove(bestMove.from, bestMove.to);
     }
   }
 
+  /// The [minimax] function uses the MiniMax algorithm to find the best move
+  /// that the Chess Bot should make
   int minimax(int depth, bool isMaximizingPlayer, int alpha, int beta) {
     if (depth == 0) {
       return chessService.evaluateBoard();
@@ -83,6 +86,8 @@ class ChessBot {
     }
   }
 
+  /// This function finds the best move the Chess Bot makes while specifying how many moves
+  /// ahead it should think
   Move findBestMove(int depth) {
     List<Move> possibleMoves = generateAllPossibleMoves(botColor);
     if (possibleMoves.isEmpty) {

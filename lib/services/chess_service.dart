@@ -159,7 +159,7 @@ class ChessService with ListenableServiceMixin {
 
   /// This function runs when a [board] tile is selected
   Future<void> select(Position position, model.ChessPiece? piece) async {
-    // Only allow selection if it's the player's turn
+    // Makes sure its a player's turn before player can select
     if (_previousPlayerVariation.value != bot?.botColor) {
       if (piece != null && piece.variation == _previousPlayerVariation.value) {
         _selectedPiece.value = piece;
@@ -171,6 +171,7 @@ class ChessService with ListenableServiceMixin {
         await makeMove(_selectedPosition.value!, position);
         clearSelection();
       }
+      notifyListeners();
     }
   }
 
@@ -181,6 +182,7 @@ class ChessService with ListenableServiceMixin {
     notifyListeners();
   }
 
+  // This function is used to know the possible valid moves the bot can move to
   bool isValidMove(Position from, Position to) {
     if (board?[from.row][from.column] == null) return false;
     List<List<bool>> validMoves =
@@ -195,11 +197,11 @@ class ChessService with ListenableServiceMixin {
       model.ChessPiece? capturedPiece = board![to.row][to.column];
       bool? prevCastlingRights = movingPiece.ableToCastle;
 
-      // Save move to history
+      // Add this move to history for undo functionality
       moveHistory.add(MoveHistory(
           from, to, movingPiece, capturedPiece, prevCastlingRights));
 
-      // Handle castling
+      // For handling castling
       if (movingPiece.type == en.ChessPiece.king &&
           (to.column - from.column).abs() == 2) {
         int rookFromCol = to.column > from.column ? 7 : 0;
@@ -213,6 +215,7 @@ class ChessService with ListenableServiceMixin {
       // Move the piece
       board![to.row][to.column] = movingPiece;
       board![from.row][from.column] = null;
+      notifyListeners();
 
       // Update king position if necessary
       if (movingPiece.type == en.ChessPiece.king) {
@@ -234,54 +237,57 @@ class ChessService with ListenableServiceMixin {
           movingPiece.variation == en.Variation.white
               ? en.Variation.black
               : en.Variation.white;
+      notifyListeners();
 
       // Check for check and checkmate
-      en.Variation opponentVariation =
-          movingPiece.variation == en.Variation.white
-              ? en.Variation.black
-              : en.Variation.white;
-      Position kingPosition = opponentVariation == en.Variation.white
-          ? Position(
-              row: whiteKingPosition["row"]!, column: whiteKingPosition["col"]!)
-          : Position(
-              row: blackKingPosition["row"]!,
-              column: blackKingPosition["col"]!);
+      // en.Variation opponentVariation =
+      //     movingPiece.variation == en.Variation.white
+      //         ? en.Variation.black
+      //         : en.Variation.white;
+      // Position kingPosition = opponentVariation == en.Variation.white
+      //     ? Position(
+      //         row: whiteKingPosition["row"]!, column: whiteKingPosition["col"]!)
+      //     : Position(
+      //         row: blackKingPosition["row"]!,
+      //         column: blackKingPosition["col"]!);
 
-      check.value = isPositionUnderAttack(kingPosition, opponentVariation);
-      checkMate.value = isCheckmate(opponentVariation);
+      // check.value = isPositionUnderAttack(kingPosition, opponentVariation);
+      // checkMate.value = isCheckmate(opponentVariation);
 
-      if (checkMate.value) {
-        winner = movingPiece.variation;
-        // log("Checkmate! ${movingPiece.variation} wins!");
-      } else if (check.value) {
-        checkedPosition = kingPosition;
-        // log("Check!");
-      } else {
-        checkedPosition = null;
-      }
+      // if (checkMate.value) {
+      //   winner = movingPiece.variation;
+      //   // log("Checkmate! ${movingPiece.variation} wins!");
+      // } else if (check.value) {
+      //   checkedPosition = kingPosition;
+      //   // log("Check!");
+      // } else {
+      //   checkedPosition = null;
+      // }
 
       notifyListeners();
 
-      // Add a small delay to ensure UI updates
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // If it's now the bot's turn, make the bot move
+      // Move the bot if it is the bot's turn
       if (_previousPlayerVariation.value == bot?.botColor) {
         await makeBotMove();
+        notifyListeners();
       }
     }
   }
 
+  // TODO: Fix undoMove functionality
   void undoMove() {
+    /// Cancel if [moveHistory] is empty
     if (moveHistory.isEmpty) return;
 
     MoveHistory lastMove = moveHistory.removeLast();
 
-    // Restore the board state
+    // Go back to previous board state
     board![lastMove.from.row][lastMove.from.column] = lastMove.movedPiece;
     board![lastMove.to.row][lastMove.to.column] = lastMove.capturedPiece;
 
-    // Restore king positions if necessary
+    // Restore king positions
     if (lastMove.movedPiece.type == en.ChessPiece.king) {
       if (lastMove.movedPiece.variation == en.Variation.white) {
         whiteKingPosition = {
@@ -296,7 +302,7 @@ class ChessService with ListenableServiceMixin {
       }
     }
 
-    // Restore castling rights if necessary
+    // Restore castling rights
     if (lastMove.movedPiece.type == en.ChessPiece.king ||
         lastMove.movedPiece.type == en.ChessPiece.rook) {
       lastMove.movedPiece.ableToCastle = lastMove.prevCastlingRights;
@@ -310,7 +316,7 @@ class ChessService with ListenableServiceMixin {
 
   bool canCastle(
       Position kingPosition, Position rookPosition, en.Variation variation) {
-    // Check if the positions are valid and the pieces exist
+    // Check if the positions are correct and the pieces are still in play
     if (!withinBounds(kingPosition.row, kingPosition.column) ||
         !withinBounds(rookPosition.row, rookPosition.column) ||
         board![kingPosition.row][kingPosition.column] == null ||
@@ -911,8 +917,8 @@ class ChessService with ListenableServiceMixin {
 
     // Check for attacks along ranks, files, and diagonals (rook, bishop, queen)
     List<List<int>> directions = [
-      [-1, 0], [1, 0], [0, -1], [0, 1], // Rook directions
-      [-1, -1], [-1, 1], [1, -1], [1, 1], // Bishop directions
+      [-1, 0], [1, 0], [0, -1], [0, 1], // Straight pathway
+      [-1, -1], [-1, 1], [1, -1], [1, 1], // Diagonal pathway
     ];
 
     for (var direction in directions) {
@@ -1039,11 +1045,12 @@ class ChessService with ListenableServiceMixin {
 
   Future<void> makeBotMove() async {
     try {
-      Move bestMove = bot!.findBestMove(1); // Search 3 moves ahead
+      Move bestMove = bot!.findBestMove(
+          1); // To specify how many moves ahead the bot should think
       await makeMove(bestMove.from, bestMove.to);
     } catch (e) {
       log("Error in makeBotMove: $e");
-      // Handle the error appropriately, e.g., end the game or skip the bot's turn
+      // TODO: Handle error for error while Bot is making a move
     }
   }
 }

@@ -36,8 +36,8 @@ class HomePage extends StatelessWidget {
                           children: [
                             CircleAvatar(
                               radius: size.height * 0.05,
-                              backgroundImage:
-                                  const AssetImage("assets/png/black_guy.jpeg"),
+                              backgroundImage: const AssetImage(
+                                  "assets/png/white_player.jpeg"),
                             ),
                             SizedBox(
                               width: size.width * 0.05,
@@ -158,7 +158,7 @@ class HomePage extends StatelessWidget {
                                     ),
                                   )
                                 : const Text(
-                                    "Player 2",
+                                    "You",
                                     style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold),
