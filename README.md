@@ -36,7 +36,7 @@ To get started with chess, follow these steps:
    flutter run
    ```
 
-## MinMax Algorithm
+## MiniMax Algorithm
 
 The Computer opponent uses the MinMax algorithm with alpha-beta pruning to determine the best move.
 The depth of the algorithm can be adjusted in the makeBotMove() function in lib/services/chess_service.dart to increase or decrease the difficulty level of the AI.
