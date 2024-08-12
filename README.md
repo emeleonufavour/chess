@@ -4,7 +4,7 @@ This is a chess application built using the Flutter framework. The app allows yo
 
 ## Screenshots
 
-![App Screenshot](assets/png/chess_app.png)
+<img src="assets/png/chess_app.png" width="400"/>
 
 ## Features
 
