@@ -2,7 +2,7 @@
 
 This is a chess application built using the Flutter framework. The app allows you to play chess against a computer opponent that uses the MiniMax algorithm.
 
-## Screenshots
+## Screenshot
 
 <img src="assets/png/chess_app.png" width="400"/>
 
